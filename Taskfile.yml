@@ -2,7 +2,35 @@
 version: 3
 
 tasks:
+  format:
+    desc: Format code
+    cmds:
+      - cargo clippy --fix --allow-staged --allow-dirty
+      - cargo fmt --all {{ .CLI_ARGS }}
+    sources:
+      - ./src/**
+
+  lint:
+    desc: Lint the repository.
+    cmds:
+      - cargo clippy {{ .CLI_ARGS }}
+      - cargo fmt --check --all
+    sources:
+      - ./src/**
+
+  test:
+    desc: Run tests.
+    cmds:
+      - cargo test {{ .CLI_ARGS }}
+    sources:
+      - ./src/**
+
   build:
-    desc: Build the application.
+    desc: Build repository.
     cmds:
       - make build
+    sources:
+      - Cargo.*
+      - src/**
+    generates:
+      - target/**
