@@ -1,0 +1,20 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "youtrack-nvim"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+mlua = { version = "0.9.9", features = ["luajit", "module", "serialize"] }
+reqwest = "0.12.7"
+erased-serde = { version = "0.4" }
+serde = { version = "1.0.209", features = ["derive"] }
+validator = { version = "0.18", features = ["derive"] }
+
+[profile.release]
+opt-level = "s"
+overflow-checks = false
