@@ -8,6 +8,7 @@ local log = require("youtrack.log")
 
 ---@param config youtrack.Config
 function M.setup(config)
+	log.new({ level = "trace" })
 	vim.print(vim.inspect(lib.setup(config)))
 end
 

@@ -12,6 +12,7 @@ tasks:
       - cargo fmt --all {{ .CLI_ARGS }}
     sources:
       - ./src/**
+      - ./Cargo.*
 
   lint:
     desc: Lint the repository.
@@ -20,6 +21,7 @@ tasks:
       - cargo fmt --check --all
     sources:
       - ./src/**
+      - ./Cargo.*
 
   test:
     desc: Run tests.
@@ -27,6 +29,7 @@ tasks:
       - cargo test {{ .CLI_ARGS }}
     sources:
       - ./src/**
+      - ./Cargo.*
 
   build:
     desc: Build repository.
