@@ -11,6 +11,7 @@ pub enum Error {
     PermissionDenied,
     Validation(validator::ValidationErrors),
     HttpClient(reqwest::Error),
+    Client(progenitor_client::Error),
     Lua(LuaError),
 }
 
@@ -29,6 +30,7 @@ impl fmt::Display for Error {
             PermissionDenied => write!(f, "Permission denied"),
             Validation(ref err) => <validator::ValidationErrors as fmt::Display>::fmt(err, f),
             HttpClient(ref err) => <reqwest::Error as fmt::Display>::fmt(err, f),
+            Client(ref err) => <progenitor_client::Error as fmt::Display>::fmt(err, f),
             Lua(ref err) => <LuaError as fmt::Display>::fmt(err, f),
         }
     }
@@ -43,6 +45,12 @@ impl From<validator::ValidationErrors> for Error {
 impl From<reqwest::Error> for Error {
     fn from(err: reqwest::Error) -> Self {
         Self::HttpClient(err)
+    }
+}
+
+impl From<progenitor_client::Error> for Error {
+    fn from(err: progenitor_client::Error) -> Self {
+        Self::Client(err)
     }
 }
 

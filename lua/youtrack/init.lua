@@ -11,4 +11,8 @@ function M.setup(config)
 	vim.print(vim.inspect(lib.setup(config)))
 end
 
+function M.get_issues()
+	vim.print(vim.inspect(lib.get_issues()))
+end
+
 return M

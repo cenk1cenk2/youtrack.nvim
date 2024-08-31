@@ -14,7 +14,9 @@ impl Config {}
 
 impl<'lua> FromLua<'lua> for Config {
     fn from_lua(value: LuaValue<'lua>, lua: &'lua Lua) -> LuaResult<Self> {
-        let c: Config = lua.from_value(value)?;
+        let mut c: Config = lua.from_value(value)?;
+
+        c.url = format!("{}/api", c.url);
 
         match c.validate() {
             Ok(_) => Ok(c),

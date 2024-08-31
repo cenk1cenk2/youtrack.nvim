@@ -1,8 +1,10 @@
-use config::Config;
+use crate::client::*;
+use crate::config::Config;
 use mlua::prelude::*;
 use reqwest::header::{self, HeaderMap};
 
 mod api;
+mod client;
 mod config;
 mod error;
 
@@ -35,12 +37,23 @@ macro_rules! export_fn {
         )
     };
 }
+macro_rules! export_async_fn {
+    ($lua:expr, $exports:expr, $fn:expr) => {
+        $exports.set(
+            stringify!($fn),
+            $lua.create_async_function(move |lua: &Lua, args| async move {
+                $fn(lua, args).await.map_err(|err| err.into())
+            })?,
+        )
+    };
+}
 
 #[mlua::lua_module]
 pub fn youtrack_lib(lua: &Lua) -> mlua::Result<LuaTable> {
     let exports = lua.create_table()?;
 
     export_fn!(lua, exports, setup)?;
+    export_async_fn!(lua, exports, get_issues)?;
 
     Ok(exports)
 }
