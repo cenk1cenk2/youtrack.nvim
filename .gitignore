@@ -2,3 +2,4 @@
 /lua/youtrack/deps
 /lua/youtrack/lib.*
 /.task
+# /src/client/api.rs

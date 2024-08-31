@@ -1,11 +1,13 @@
 use config::Config;
 use mlua::prelude::*;
 
+mod api;
 mod config;
 mod error;
 
 fn setup(lua: &Lua, config: Config) -> Result<Config, error::Error> {
     lua.set_app_data(config.clone());
+
     Ok(config)
 }
 
