@@ -5,7 +5,9 @@ use validator::Validate;
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 pub struct Config {
     #[validate(url(message = "URL should be a full url of your Youtrack instance."))]
-    url: String,
+    pub url: String,
+
+    pub token: String,
 }
 
 impl Config {}

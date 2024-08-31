@@ -1,11 +1,27 @@
 use config::Config;
 use mlua::prelude::*;
+use reqwest::header::{self, HeaderMap};
 
 mod api;
 mod config;
 mod error;
 
 fn setup(lua: &Lua, config: Config) -> Result<Config, error::Error> {
+    let mut headers = HeaderMap::new();
+
+    let auth = header::HeaderValue::from_str(format!("Bearer {}", config.token).as_str()).unwrap();
+    headers.insert(header::AUTHORIZATION, auth);
+
+    let client = api::Client::new_with_client(
+        &config.clone().url,
+        reqwest::Client::builder()
+            .user_agent("youtrack-nvim")
+            .default_headers(headers)
+            .build()?,
+    );
+
+    lua.set_app_data(client);
+
     lua.set_app_data(config.clone());
 
     Ok(config)

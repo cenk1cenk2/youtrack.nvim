@@ -5,7 +5,7 @@ use mlua::prelude::LuaError;
 
 #[derive(Debug)]
 pub enum Error {
-    SetupFailed,
+    NoSetup,
     MalformedToken,
     Unauthorized,
     PermissionDenied,
@@ -20,7 +20,10 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Error::*;
         match self {
-            SetupFailed => write!(f, "Lib wasn't setup or error occured during setup"),
+            NoSetup => write!(
+                f,
+                "Library did not get setup correctly. Did you call setup?"
+            ),
             MalformedToken => write!(f, "Malformed token"),
             Unauthorized => write!(f, "Unauthorized"),
             PermissionDenied => write!(f, "Permission denied"),

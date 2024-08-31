@@ -3,3 +3,6 @@
 /lua/youtrack/lib.*
 /.task
 # /src/client/api.rs
+*.bak
+/.env
+/openapi.tmp.json
