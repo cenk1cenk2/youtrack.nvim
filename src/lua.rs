@@ -14,8 +14,8 @@ impl<'lua> FromLua<'lua> for NoData {
 }
 
 impl<'lua> IntoLua<'lua> for NoData {
-    fn into_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
-        Ok(lua.null())
+    fn into_lua(self, _lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+        Ok(mlua::Value::Nil)
     }
 }
 
