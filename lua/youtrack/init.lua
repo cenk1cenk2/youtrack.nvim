@@ -43,21 +43,14 @@ function M.get_issues(opts)
 			on_change = function(value, component)
 				signal.query = value
 
-				local ok, issues = pcall(lib.get_issues, { query = value })
+				lib.get_issues({ query = value }, function(issues)
+					signal.issues = vim.tbl_map(function(issue)
+						return n.node(issue)
+					end, issues)
 
-				if not ok then
-					signal.issues = {}
-
-					return
-				end
-
-				-- vim.notify(vim.inspect(issues))
-				signal.issues = vim.tbl_map(function(issue)
-					return n.node(issue)
-				end, issues)
-
-				component:modify_buffer_content(function()
-					component:set_border_text("bottom", "Length: " .. #signal.issues, "right")
+					component:modify_buffer_content(function()
+						component:set_border_text("bottom", "Length: " .. #signal.issues, "right")
+					end)
 				end)
 			end,
 			on_mount = function(component)
