@@ -23,7 +23,7 @@ macro_rules! export_fn {
         $exports.set(
             $name.unwrap_or(stringify!($fn)),
             $lua.create_function(move |lua: &'static Lua, args| {
-                let m = lua.app_data_ref::<Module>().ok_or_else(|| Error::NoSetup);
+                let m = lua.app_data_ref::<Module>().ok_or_else(|| Error::NoSetup)?;
 
                 $fn(lua, m, args).map_err(|err| err.into_lua_err())
             })?,
@@ -31,24 +31,45 @@ macro_rules! export_fn {
     };
 }
 
-macro_rules! export_async_blocking_fn {
-    ($lua:expr, $exports:expr, $name: expr, $fn:expr) => {
+macro_rules! export_async_fn {
+    ($lua:expr, $exports:expr, $name: expr, $fn:expr, $args: ty) => {
         $exports.set(
             $name.unwrap_or(stringify!($fn)),
-            $lua.create_function(move |lua: &'static Lua, args| {
-                let m = lua.app_data_ref::<Module>().ok_or_else(|| Error::NoSetup)?;
+            $lua.create_function(move |lua: &'static Lua, args: $args| {
+                let f = $lua
+                    .create_async_function(|lua: &'static Lua, args: $args| async move {
+                        let _guard = RUNTIME.enter();
+                        $fn(lua, lua.app_data_ref::<Module>().unwrap(), args)
+                            .await
+                            .map_err(|err| err.into_lua_err())?;
 
-                m.runtime.block_on(async {
-                    let m = lua.app_data_ref::<Module>().ok_or_else(|| Error::NoSetup)?;
+                        Ok(())
+                    })
+                    .unwrap()
+                    .bind(args)
+                    .unwrap();
 
-                    $fn(lua, m, args).await.map_err(|err| err.into_lua_err())
+                lua.load(mlua::chunk! {
+                    local coroutine = coroutine.wrap($f)
+                    local step = function() end
+                    step = function()
+                        if coroutine() ~= nil then
+                            vim.schedule(step)
+                        end
+                    end
+                    step()
+
                 })
+                .exec()
+                .unwrap();
+
+                Ok(())
             })?,
         )
     };
 }
 
-pub(crate) use export_async_blocking_fn;
+pub(crate) use export_async_fn;
 pub(crate) use export_fn;
 pub(crate) use from_lua;
 pub(crate) use into_lua;

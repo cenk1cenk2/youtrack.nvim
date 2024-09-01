@@ -3,7 +3,7 @@ use mlua::{FromLua, IntoLua};
 use serde::{Deserialize, Serialize};
 
 use crate::api::types::Issue;
-use crate::macros::{from_lua, into_lua};
+use crate::macros::into_lua;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NoData;

@@ -13,7 +13,7 @@ pub enum Error {
     Validation(validator::ValidationErrors),
     HttpClient(reqwest::Error),
     Client(progenitor_client::Error),
-    Lua(LuaError),
+    Lua(mlua::Error),
     Logger(SetLoggerError),
 }
 

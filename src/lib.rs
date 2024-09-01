@@ -1,11 +1,14 @@
+#![feature(async_closure)]
+
 use crate::config::Config;
 use client::*;
 use error::Error;
 use lua::NoData;
-use macros::export_async_blocking_fn;
+use macros::export_async_fn;
 use mlua::prelude::*;
 use reqwest::header::{self, HeaderMap};
 use structured_logger::Builder;
+use tokio::runtime::Runtime;
 use writer::LuaWriter;
 
 mod api;
@@ -17,26 +20,18 @@ mod macros;
 mod writer;
 
 struct Module {
-    pub runtime: tokio::runtime::Runtime,
     pub config: Config,
     pub client: api::Client,
 }
 
 impl Module {
     fn setup(lua: &'static Lua, config: Config) -> Result<NoData, Error> {
-        let runtime = tokio::runtime::Builder::new_multi_thread()
-            .enable_all()
-            .build()
-            .unwrap();
-
         let _ = Builder::with_level(log::Level::Trace.as_str())
             .with_target_writer("*", LuaWriter::new(lua, "youtrack.log")?.get())
             .try_init()
             .map_err(|err| log::error!("{}", err))
-            .and_then(|_| {
+            .map(|_| {
                 log::debug!("Setup the logger for the library.");
-
-                Ok(())
             });
 
         let mut headers = HeaderMap::new();
@@ -60,15 +55,18 @@ impl Module {
         );
         log::debug!("Setup the client with url: {}", config.url);
 
-        lua.set_app_data(Self {
-            runtime,
-            config,
-            client,
-        });
+        lua.set_app_data(Self { config, client });
 
         Ok(NoData {})
     }
 }
+
+static RUNTIME: once_cell::sync::Lazy<Runtime> = once_cell::sync::Lazy::new(|| {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .expect("Failed to create runtime.")
+});
 
 #[mlua::lua_module(skip_memory_check)]
 pub fn youtrack_lib(lua: &'static Lua) -> mlua::Result<LuaTable> {
@@ -81,7 +79,7 @@ pub fn youtrack_lib(lua: &'static Lua) -> mlua::Result<LuaTable> {
         })?,
     )?;
 
-    export_async_blocking_fn!(lua, exports, None, get_issues)?;
+    export_async_fn!(lua, exports, Some("get_issues"), get_issues, GetIssuesArgs)?;
 
     Ok(exports)
 }

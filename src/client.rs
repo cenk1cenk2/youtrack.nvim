@@ -1,5 +1,5 @@
 use mlua::prelude::*;
-use mlua::{AppDataRef, FromLua, Lua, LuaSerdeExt};
+use mlua::{AppDataRef, Lua};
 use serde::{Deserialize, Serialize};
 
 use crate::api::types::Issue;
@@ -42,12 +42,14 @@ impl Default for GetIssues {
 from_lua!(GetIssues);
 into_lua!(GetIssues);
 
+pub type GetIssuesArgs<'lua> = (Option<GetIssues>, LuaFunction<'lua>);
+
 #[allow(unused_variables)]
 pub async fn get_issues(
     lua: &Lua,
     m: AppDataRef<'static, Module>,
-    options: Option<GetIssues>,
-) -> Result<Vec<Issue>, Error> {
+    (options, callback): GetIssuesArgs<'_>,
+) -> Result<(), Error> {
     let res = m
         .client
         .issues_get(
@@ -82,5 +84,9 @@ pub async fn get_issues(
         )
         .await?;
 
-    Ok(res.into_inner())
+    log::info!("get_issues: {:?}", res);
+
+    callback.call(res.into_inner().into_lua(lua))?;
+
+    Ok(())
 }
