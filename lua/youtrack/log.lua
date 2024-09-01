@@ -6,19 +6,13 @@
 
 local defaults = {
 	plugin = "youtrack.nvim",
-	use_console = true,
-	highlights = true,
-	use_file = false,
-	level = "info",
 	modes = {
-		{ name = "trace", hl = "Comment" },
-		{ name = "debug", hl = "Comment" },
-		{ name = "info", hl = "None" },
-		{ name = "warn", hl = "WarningMsg" },
-		{ name = "error", hl = "ErrorMsg" },
-		{ name = "fatal", hl = "ErrorMsg" },
+		{ name = "trace", level = vim.log.levels.TRACE },
+		{ name = "debug", level = vim.log.levels.DEBUG },
+		{ name = "info", level = vim.log.levels.INFO },
+		{ name = "warn", level = vim.log.levels.WARN },
+		{ name = "error", level = vim.log.levels.ERROR },
 	},
-	float_precision = 0.01,
 }
 
 ---@class schema_companion.Logger
@@ -27,44 +21,20 @@ local M = {}
 function M.new(config)
 	config = vim.tbl_deep_extend("force", defaults, config)
 
-	local levels = {}
-	for i, v in ipairs(config.modes) do
-		levels[v.name] = i
-	end
-
-	local log_at_level = function(level, level_config, message_maker, ...)
-		-- Return early if we're below the config.level
-		if level < levels[config.level] then
-			return
-		end
-		local nameupper = level_config.name:upper()
-
-		local msg = message_maker(...)
+	local log = function(mode, sprintf, ...)
 		local info = debug.getinfo(2, "Sl")
-		local lineinfo = info.short_src .. ":" .. info.currentline
+		local lineinfo = ("%s:%s"):format(info.short_src, info.currentline)
 
-		-- Output to console
-		if config.use_console then
-			local console_string = string.format("[%-6s%s] %s: %s", nameupper, os.date("%H:%M:%S"), lineinfo, msg)
+		local console = string.format("[%-5s%s]: %s", mode.name:upper(), lineinfo, sprintf(...))
 
-			if config.highlights and level_config.hl then
-				vim.cmd(string.format("echohl %s", level_config.hl))
-			end
-
-			local split_console = vim.split(console_string, "\n")
-			for _, v in ipairs(split_console) do
-				vim.cmd(string.format([[echom "[%s] %s"]], config.plugin, vim.fn.escape(v, '"')))
-			end
-
-			if config.highlights and level_config.hl then
-				vim.cmd("echohl NONE")
-			end
+		for _, line in ipairs(vim.split(console, "\n")) do
+			vim.notify(([[[%s] %s]]):format(config.plugin, line), mode.level)
 		end
 	end
 
-	for i, mode in pairs(config.modes) do
+	for _, mode in pairs(config.modes) do
 		M[mode.name] = function(...)
-			return log_at_level(i, mode, function(...)
+			return log(mode, function(...)
 				local passed = { ... }
 				local fmt = table.remove(passed, 1)
 				local inspected = {}
