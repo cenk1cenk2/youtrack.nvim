@@ -1,18 +1,18 @@
 use crate::client::*;
 use crate::config::Config;
 use error::Error;
-use logger::LuaWriter;
 use lua::NoData;
 use mlua::prelude::*;
 use reqwest::header::{self, HeaderMap};
 use structured_logger::Builder;
+use writer::LuaWriter;
 
 mod api;
 mod client;
 mod config;
 mod error;
-mod logger;
 mod lua;
+mod writer;
 
 struct Module {
     pub runtime: tokio::runtime::Runtime,
