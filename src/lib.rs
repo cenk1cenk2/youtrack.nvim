@@ -1,7 +1,8 @@
-use crate::client::*;
 use crate::config::Config;
+use client::*;
 use error::Error;
 use lua::NoData;
+use macros::export_async_blocking_fn;
 use mlua::prelude::*;
 use reqwest::header::{self, HeaderMap};
 use structured_logger::Builder;
@@ -12,6 +13,7 @@ mod client;
 mod config;
 mod error;
 mod lua;
+mod macros;
 mod writer;
 
 struct Module {
@@ -68,36 +70,6 @@ impl Module {
     }
 }
 
-macro_rules! export_fn {
-    ($lua:expr, $exports:expr, $name:expr, $fn:expr) => {
-        $exports.set(
-            $name.unwrap_or(stringify!($fn)),
-            $lua.create_function(move |lua: &'static Lua, args| {
-                let m = lua.app_data_ref::<Module>().ok_or_else(|| Error::NoSetup);
-
-                $fn(lua, m, args).map_err(|err| err.into_lua_err())
-            })?,
-        )
-    };
-}
-
-macro_rules! export_async_fn {
-    ($lua:expr, $exports:expr, $name: expr, $fn:expr) => {
-        $exports.set(
-            $name.unwrap_or(stringify!($fn)),
-            $lua.create_function(move |lua: &'static Lua, args| {
-                let m = lua.app_data_ref::<Module>().ok_or_else(|| Error::NoSetup)?;
-
-                m.runtime.block_on(async {
-                    let m = lua.app_data_ref::<Module>().ok_or_else(|| Error::NoSetup)?;
-
-                    $fn(lua, m, args).await.map_err(|err| err.into_lua_err())
-                })
-            })?,
-        )
-    };
-}
-
 #[mlua::lua_module(skip_memory_check)]
 pub fn youtrack_lib(lua: &'static Lua) -> mlua::Result<LuaTable> {
     let exports = lua.create_table()?;
@@ -109,7 +81,7 @@ pub fn youtrack_lib(lua: &'static Lua) -> mlua::Result<LuaTable> {
         })?,
     )?;
 
-    export_async_fn!(lua, exports, None, get_issues)?;
+    export_async_blocking_fn!(lua, exports, None, get_issues)?;
 
     Ok(exports)
 }

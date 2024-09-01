@@ -2,6 +2,8 @@ use mlua::prelude::*;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
+use crate::macros::into_lua;
+
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 pub struct Config {
     #[validate(url(message = "URL should be a full url of your Youtrack instance."))]
@@ -25,8 +27,4 @@ impl<'lua> FromLua<'lua> for Config {
     }
 }
 
-impl<'lua> IntoLua<'lua> for Config {
-    fn into_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
-        lua.to_value(&self)
-    }
-}
+into_lua!(Config);

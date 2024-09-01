@@ -3,6 +3,7 @@ use mlua::{FromLua, IntoLua};
 use serde::{Deserialize, Serialize};
 
 use crate::api::types::Issue;
+use crate::macros::{from_lua, into_lua};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NoData;
@@ -19,14 +20,4 @@ impl<'lua> IntoLua<'lua> for NoData {
     }
 }
 
-impl<'lua> FromLua<'lua> for Issue {
-    fn from_lua(value: LuaValue<'lua>, lua: &'lua Lua) -> LuaResult<Self> {
-        lua.from_value(value)
-    }
-}
-
-impl<'lua> IntoLua<'lua> for Issue {
-    fn into_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
-        lua.to_value(&self)
-    }
-}
+into_lua!(Issue);
