@@ -3,10 +3,9 @@
 --
 -- This library is free software; you can redistribute it and/or modify it
 -- under the terms of the MIT license. See LICENSE for details.
---
 
 ---@class youtrack.Logger
----@field new youtrack.LoggerNew
+---@field setup youtrack.LoggerSetupFn
 ---@field config youtrack.LoggerConfig
 ---@field trace fun(fmt: string, ...: any)
 ---@field debug fun(fmt: string, ...: any)
@@ -34,10 +33,10 @@ M.config = {
 	},
 }
 
----@alias youtrack.LoggerNew fun(): youtrack.Logger
+---@alias youtrack.LoggerSetupFn fun(): youtrack.Logger
 
----@type youtrack.LoggerNew
-function M.new()
+---@type youtrack.LoggerSetupFn
+function M.setup()
 	local log = function(mode, sprintf, ...)
 		local info = debug.getinfo(2, "Sl")
 		local lineinfo = ("%s:%s"):format(info.short_src, info.currentline)
