@@ -1,5 +1,7 @@
+use crate::api::types::*;
 use mlua::prelude::*;
 use mlua::{AppDataRef, Lua};
+use progenitor_client::ResponseValue;
 use serde::{Deserialize, Serialize};
 
 use crate::error::Error;
@@ -81,11 +83,26 @@ pub async fn get_issues(
                     .as_str(),
             ),
         )
-        .await?;
+        .await;
 
-    log::info!("get_issues: {:?}", res);
-
-    callback.call(res.into_inner().into_lua(lua))?;
+    match res {
+        Ok(res) => {
+            log::debug!(
+                "Youtrack issues matching: {:?} -> {:?}",
+                options.unwrap_or_default(),
+                res
+            );
+            callback.call((LuaNil, res.into_inner().into_lua(lua)))?;
+        }
+        Err(err) => {
+            log::debug!(
+                "Youtrack issues can not be fetched: {:?} -> {}",
+                options.unwrap_or_default(),
+                err.to_string()
+            );
+            callback.call((err.to_string(), LuaNil))?;
+        }
+    }
 
     Ok(())
 }

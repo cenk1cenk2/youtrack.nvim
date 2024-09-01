@@ -59,7 +59,7 @@ function M.setup()
 					table.insert(inspected, vim.inspect(v))
 				end
 
-				return string.format(fmt, unpack(inspected))
+				return fmt:format(unpack(inspected))
 			end, ...)
 		end
 	end

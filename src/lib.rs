@@ -22,6 +22,7 @@ mod writer;
 struct Module {
     pub config: Config,
     pub client: api::Client,
+    guard: tokio::runtime::EnterGuard<'static>,
 }
 
 impl Module {
@@ -55,7 +56,13 @@ impl Module {
         );
         log::debug!("Setup the client with url: {}", config.url);
 
-        lua.set_app_data(Self { config, client });
+        let guard = RUNTIME.enter();
+
+        lua.set_app_data(Self {
+            config,
+            client,
+            guard,
+        });
 
         Ok(NoData {})
     }

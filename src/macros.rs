@@ -38,7 +38,6 @@ macro_rules! export_async_fn {
             $lua.create_function(move |lua: &'static Lua, args: $args| {
                 let f = $lua
                     .create_async_function(|lua: &'static Lua, args: $args| async move {
-                        let _guard = RUNTIME.enter();
                         $fn(lua, lua.app_data_ref::<Module>().unwrap(), args)
                             .await
                             .map_err(|err| err.into_lua_err())?;

@@ -20,12 +20,25 @@ function M.test_issues(opts)
 end
 
 function M.get_issues(opts)
-	opts = vim.tbl_extend("force", { query = "" }, opts or {})
+	opts = vim.tbl_extend("force", { query = "for: me #Unresolved" }, opts or {})
 	local signal = n.create_signal({
 		query = opts.query,
-		results = {},
+		issues = {},
 		selected = nil,
 	})
+
+	signal.query:debounce(500):observe(function(query)
+		lib.get_issues({ query = query }, function(err, issues)
+			if err then
+				signal.issues = {}
+				return
+			end
+
+			signal.issues = vim.tbl_map(function(issue)
+				return n.node(issue)
+			end, issues)
+		end)
+	end)
 
 	-- local subscription = signal:observe(function(prev, curr) end)
 
@@ -43,24 +56,12 @@ function M.get_issues(opts)
 			on_change = function(value, component)
 				signal.query = value
 
-				lib.get_issues({ query = value }, function(issues)
-					signal.issues = vim.tbl_map(function(issue)
-						return n.node(issue)
-					end, issues)
-
-					component:modify_buffer_content(function()
-						component:set_border_text("bottom", "Length: " .. #signal.issues, "right")
-					end)
+				component:modify_buffer_content(function()
+					component:set_border_text("bottom", ("matches: %d"):format(#signal.issues:get_value()), "right")
 				end)
-			end,
-			on_mount = function(component)
-				local value = signal.query:get_value()
-
-				-- component:set_border_text("bottom", "Length: " .. #signal.issues, "right")
 			end,
 		}),
 		n.tree({
-			hidden = #signal.issues == 0,
 			border_label = "Select issue",
 			selected = signal.selected,
 			data = signal.issues,
