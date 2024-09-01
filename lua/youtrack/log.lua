@@ -4,7 +4,16 @@
 -- This library is free software; you can redistribute it and/or modify it
 -- under the terms of the MIT license. See LICENSE for details.
 
-local defaults = {
+---@class youtrack.Logger
+local M = {}
+
+---@class youtrack.LoggerConfig
+---@field plugin string
+---@field modes youtrack.LoggerMode[]
+---@class youtrack.LoggerMode
+---@field name string
+---@field level number
+M.config = {
 	plugin = "youtrack.nvim",
 	modes = {
 		{ name = "trace", level = vim.log.levels.TRACE },
@@ -15,11 +24,11 @@ local defaults = {
 	},
 }
 
----@class schema_companion.Logger
-local M = {}
+---@alias youtrack.LoggerNew fun(config: youtrack.LoggerConfig): youtrack.Logger
 
+---@type youtrack.LoggerNew
 function M.new(config)
-	config = vim.tbl_deep_extend("force", defaults, config)
+	config = vim.tbl_deep_extend("force", {}, M.config, config)
 
 	local log = function(mode, sprintf, ...)
 		local info = debug.getinfo(2, "Sl")
