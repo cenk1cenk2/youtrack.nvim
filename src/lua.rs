@@ -1,8 +1,10 @@
 use mlua::prelude::*;
 use mlua::{FromLua, IntoLua};
+use serde::{Deserialize, Serialize};
 
 use crate::api::types::Issue;
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct NoData {}
 
 impl<'lua> FromLua<'lua> for NoData {

@@ -1,18 +1,18 @@
 use mlua::{AppDataRef, Lua};
 
 use crate::api::types::Issue;
+use crate::error::Error;
 use crate::lua::NoData;
-use crate::{api::Client, error::Error};
-
-fn get_client(lua: &Lua) -> Result<AppDataRef<Client>, Error> {
-    lua.app_data_ref::<Client>().ok_or_else(|| Error::NoSetup)
-}
+use crate::Module;
 
 #[allow(unused_variables)]
-pub async fn get_issues(lua: &Lua, _: Option<NoData>) -> Result<Vec<Issue>, Error> {
-    let client = get_client(lua)?;
-
-    let res = client
+pub async fn get_issues(
+    lua: &Lua,
+    m: AppDataRef<'static, Module>,
+    _: Option<NoData>,
+) -> Result<Vec<Issue>, Error> {
+    let res = m
+        .client
         .issues_get(
             Some(0),
             Some(20),
