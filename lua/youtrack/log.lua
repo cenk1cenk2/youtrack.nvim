@@ -3,6 +3,17 @@
 --
 -- This library is free software; you can redistribute it and/or modify it
 -- under the terms of the MIT license. See LICENSE for details.
+--
+
+---@class youtrack.Logger
+---@field new youtrack.LoggerNew
+---@field config youtrack.LoggerConfig
+---@field trace fun(fmt: string, ...: any)
+---@field debug fun(fmt: string, ...: any)
+---@field info fun(fmt: string, ...: any)
+---@field warn fun(fmt: string, ...: any)
+---@field error fun(fmt: string, ...: any)
+---@field fatal fun(fmt: string, ...: any)
 
 ---@class youtrack.Logger
 local M = {}
