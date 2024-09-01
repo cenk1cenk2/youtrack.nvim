@@ -28,7 +28,7 @@ impl Module {
             .unwrap();
 
         let _ = Builder::with_level(log::Level::Trace.as_str())
-            .with_target_writer("*", LuaWriter::new(lua)?.get())
+            .with_target_writer("*", LuaWriter::new(lua, "youtrack.log")?.get())
             .try_init()
             .map_err(|err| log::error!("{}", err))
             .and_then(|_| {

@@ -5,11 +5,11 @@ use serde::{Deserialize, Serialize};
 use crate::api::types::Issue;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct NoData {}
+pub struct NoData;
 
 impl<'lua> FromLua<'lua> for NoData {
     fn from_lua(_value: LuaValue<'lua>, _lua: &'lua Lua) -> LuaResult<Self> {
-        Ok(NoData {})
+        Ok(NoData)
     }
 }
 

@@ -51,10 +51,10 @@ pub struct LuaWriter {
 }
 
 impl LuaWriter {
-    pub fn new(lua: &'static Lua) -> Result<Self, Error> {
+    pub fn new(lua: &'static Lua, import: &str) -> Result<Self, Error> {
         let globals = lua.globals();
         let require: LuaFunction = globals.get("require")?;
-        let log: LuaTable<'static> = require.call("youtrack.log")?;
+        let log: LuaTable<'static> = require.call(import)?;
 
         Ok(Self { lua, log })
     }
