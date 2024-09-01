@@ -34,12 +34,10 @@ M.config = {
 	},
 }
 
----@alias youtrack.LoggerNew fun(config: youtrack.LoggerConfig): youtrack.Logger
+---@alias youtrack.LoggerNew fun(): youtrack.Logger
 
 ---@type youtrack.LoggerNew
-function M.new(config)
-	config = vim.tbl_deep_extend("force", {}, M.config, config)
-
+function M.new()
 	local log = function(mode, sprintf, ...)
 		local info = debug.getinfo(2, "Sl")
 		local lineinfo = ("%s:%s"):format(info.short_src, info.currentline)
@@ -47,11 +45,11 @@ function M.new(config)
 		local console = string.format("[%-5s%s]: %s", mode.name:upper(), lineinfo, sprintf(...))
 
 		for _, line in ipairs(vim.split(console, "\n")) do
-			vim.notify(([[[%s] %s]]):format(config.plugin, line), mode.level)
+			vim.notify(([[[%s] %s]]):format(M.config.plugin, line), mode.level)
 		end
 	end
 
-	for _, mode in pairs(config.modes) do
+	for _, mode in pairs(M.config.modes) do
 		M[mode.name] = function(...)
 			return log(mode, function(...)
 				local passed = { ... }
