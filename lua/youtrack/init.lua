@@ -13,7 +13,7 @@ function M.setup(config)
 end
 
 function M.get_issues()
-	vim.print(vim.inspect(lib.get_issues()))
+	vim.print(vim.inspect(lib.get_issues({ query = "project: Kubernetes" })))
 end
 
 return M
