@@ -70,6 +70,5 @@ macro_rules! export_async_fn {
 }
 
 pub(crate) use export_async_fn;
-pub(crate) use export_fn;
 pub(crate) use from_lua;
 pub(crate) use into_lua;

@@ -2,7 +2,6 @@ use mlua::prelude::*;
 use mlua::{AppDataRef, Lua};
 use serde::{Deserialize, Serialize};
 
-use crate::api::types::Issue;
 use crate::error::Error;
 use crate::macros::{self, from_lua, into_lua};
 use crate::Module;
