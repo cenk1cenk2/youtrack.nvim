@@ -95,12 +95,13 @@ pub async fn get_issues(
             callback.call((LuaNil, res.into_inner().into_lua(lua)))?;
         }
         Err(err) => {
+            let e = Error::Client(err);
             log::debug!(
                 "Youtrack issues can not be fetched: {:?} -> {}",
                 options.unwrap_or_default(),
-                err.to_string()
+                e
             );
-            callback.call((err.to_string(), LuaNil))?;
+            callback.call((e.to_string(), LuaNil))?;
         }
     }
 

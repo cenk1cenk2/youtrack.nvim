@@ -80,6 +80,8 @@ impl Writer for LuaWriter {
             .unwrap_or_default();
 
         self.log
+            .get::<_, LuaTable>("print")
+            .map_err(io::Error::other)?
             .get::<_, LuaFunction>(LogLevel::Level(level).to_string())
             .map_err(io::Error::other)?
             .call(format!("[{}] {}", target, message).into_lua(self.lua))
