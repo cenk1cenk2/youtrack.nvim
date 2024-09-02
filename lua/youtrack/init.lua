@@ -28,7 +28,7 @@ function M.get_issues(opts)
 		issues = {},
 		has_issues = false,
 		error_issues = false,
-		selected = nil,
+		issue = nil,
 	})
 
 	local renderer = n.create_renderer({
@@ -122,7 +122,7 @@ function M.get_issues(opts)
 				data = signal.issues,
 				on_select = function(node, component)
 					local tree = component:get_tree()
-					signal.selected = node
+					signal.issue = node
 					tree:render()
 				end,
 				prepare_node = function(node, line, component)
