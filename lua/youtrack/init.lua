@@ -33,7 +33,7 @@ function M.get_issues(opts)
 
 	local renderer = n.create_renderer({
 		width = 120,
-		height = 3,
+		height = 10,
 		position = "50%",
 		relative = "editor",
 	})
@@ -64,7 +64,6 @@ function M.get_issues(opts)
 				end
 
 				local error_issues = renderer:get_component_by_id("error_issues")
-				vim.print(vim.inspect(error_issues))
 				if error_issues ~= nil then
 					vim.api.nvim_set_option_value("modifiable", true, { buf = error_issues.bufnr })
 					vim.api.nvim_buf_set_lines(error_issues.bufnr, 0, -1, false, vim.split(err, "\n"))
@@ -74,7 +73,7 @@ function M.get_issues(opts)
 
 			signal.issues = vim.tbl_map(function(issue)
 				return n.node(issue)
-			end, issues)
+			end, issues or {})
 			signal.has_issues = true
 			signal.error_issues = nil
 
