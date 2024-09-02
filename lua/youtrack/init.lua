@@ -31,7 +31,21 @@ function M.get_issues(opts)
 		selected = nil,
 	})
 
-	local error_issues = vim.api.nvim_create_buf(false, true)
+	local renderer = n.create_renderer({
+		width = 120,
+		height = 3,
+		position = "50%",
+		relative = "editor",
+	})
+	renderer:add_mappings({
+		{
+			mode = { "n" },
+			key = "q",
+			handler = function()
+				renderer:close()
+			end,
+		},
+	})
 
 	signal.query:debounce(500):observe(function(query)
 		local component_query = signal.component_query:get_value()
@@ -49,11 +63,13 @@ function M.get_issues(opts)
 					component_query:set_border_text("bottom", "error", "right")
 				end
 
-				vim.api.nvim_set_option_value("modifiable", true, { buf = error_issues })
-				vim.api.nvim_buf_set_lines(error_issues, 0, -1, false, vim.split(err, "\n"))
-				vim.api.nvim_set_option_value("modifiable", false, { buf = error_issues })
-
-				return
+				local error_issues = renderer:get_component_by_id("error_issues")
+				vim.print(vim.inspect(error_issues))
+				if error_issues ~= nil then
+					vim.api.nvim_set_option_value("modifiable", true, { buf = error_issues.bufnr })
+					vim.api.nvim_buf_set_lines(error_issues.bufnr, 0, -1, false, vim.split(err, "\n"))
+					vim.api.nvim_set_option_value("modifiable", false, { buf = error_issues.bufnr })
+				end
 			end
 
 			signal.issues = vim.tbl_map(function(issue)
@@ -91,7 +107,7 @@ function M.get_issues(opts)
 		n.buffer({
 			flex = 1,
 			id = "error_issues",
-			buf = error_issues,
+			buf = vim.api.nvim_create_buf(false, true),
 			autoscroll = false,
 			border_label = "Error",
 			hidden = signal.error_issues:negate(),
@@ -113,7 +129,6 @@ function M.get_issues(opts)
 				prepare_node = function(node, line, component)
 					line:append(("[%s]"):format(node.project.name), "@class")
 					line:append((" %s"):format(node.idReadable), "@constant")
-					line:append((" %s"):format(node.type, "@comment"))
 					line:append((" %s"):format(node.summary, "@string"))
 
 					return line
@@ -121,21 +136,6 @@ function M.get_issues(opts)
 			})
 		)
 	)
-
-	local renderer = n.create_renderer({
-		width = 120,
-		position = "50%",
-		relative = "editor",
-	})
-	renderer:add_mappings({
-		{
-			mode = { "n" },
-			from = "q",
-			to = function()
-				renderer:close()
-			end,
-		},
-	})
 
 	-- renderer:on_unmount(function()
 	-- 	subscription:unsubscribe()

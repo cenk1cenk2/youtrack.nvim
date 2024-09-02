@@ -71,8 +71,9 @@ pub async fn get_issues(
                     .take
                     .unwrap_or_default(),
             ),
-            Some("type,state"),
-            Some("type,id,idReadable,summary,description,project(id,name),fields(value(id,name,description,localizedName,isResolved,color(@color)"),
+            // this is not implemented in the openapi spec properly, it can be multiple fields
+            None,
+            Some("id,idReadable,summary,description,project(id,name),customFields(name)"),
             Some(
                 options
                     .clone()

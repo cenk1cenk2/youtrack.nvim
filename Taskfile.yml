@@ -46,5 +46,4 @@ tasks:
     cmds:
       - curl {{ .YOUTRACK_OPENAPI_SPEC_URL }} -L > openapi.tmp.json
       - jq 'del(.servers) | delpaths([paths | select(.[0] | . == "paths") | select(.[1] | strings | startswith("/admin"))]) | delpaths([paths | select(.[-1] | strings | . == "multipart/form-data")]) | delpaths([paths | select(.[0] | . == "paths") | select(.[1] | strings | startswith("/issues") | not)]) | del(.components.schemas.IssueWorkItem.allOf[1].properties.type)' openapi.tmp.json > openapi.json
-
       - rm openapi.tmp.json
