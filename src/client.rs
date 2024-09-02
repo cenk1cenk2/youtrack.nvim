@@ -71,8 +71,8 @@ pub async fn get_issues(
                     .take
                     .unwrap_or_default(),
             ),
-            None,
-            Some("type,summary,description,project(id,name)"),
+            Some("type,state"),
+            Some("type,id,idReadable,summary,description,project(id,name),fields(value(id,name,description,localizedName,isResolved,color(@color)"),
             Some(
                 options
                     .clone()

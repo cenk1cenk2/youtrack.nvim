@@ -14,7 +14,8 @@ function M.setup(config)
 end
 
 function M.test_issues(opts)
-	lib.get_issues(opts, function(issues)
+	lib.get_issues(opts, function(error, issues)
+		vim.print(vim.inspect(error))
 		vim.print(vim.inspect(issues))
 	end)
 end
@@ -22,32 +23,59 @@ end
 function M.get_issues(opts)
 	opts = vim.tbl_extend("force", { query = "for: me #Unresolved" }, opts or {})
 	local signal = n.create_signal({
+		component_query = nil,
 		query = opts.query,
 		issues = {},
+		has_issues = false,
+		error_issues = false,
 		selected = nil,
 	})
 
+	local error_issues = vim.api.nvim_create_buf(false, true)
+
 	signal.query:debounce(500):observe(function(query)
+		local component_query = signal.component_query:get_value()
+		if component_query ~= nil then
+			component_query:set_border_text("bottom", "running...", "right")
+		end
+
 		lib.get_issues({ query = query }, function(err, issues)
 			if err then
 				signal.issues = {}
+				signal.has_issues = false
+				signal.error_issues = true
+
+				if component_query ~= nil then
+					component_query:set_border_text("bottom", "error", "right")
+				end
+
+				vim.api.nvim_set_option_value("modifiable", true, { buf = error_issues })
+				vim.api.nvim_buf_set_lines(error_issues, 0, -1, false, vim.split(err, "\n"))
+				vim.api.nvim_set_option_value("modifiable", false, { buf = error_issues })
+
 				return
 			end
 
 			signal.issues = vim.tbl_map(function(issue)
 				return n.node(issue)
 			end, issues)
+			signal.has_issues = true
+			signal.error_issues = nil
+
+			if component_query ~= nil then
+				component_query:set_border_text("bottom", ("matches: %d"):format(#signal.issues:get_value()), "right")
+			end
 		end)
 	end)
 
 	-- local subscription = signal:observe(function(prev, curr) end)
 
 	local body = n.rows(
-		{ flex = 1 },
+		{ flex = 0 },
 		--- text input for query
 		n.text_input({
 			autofocus = true,
-			autoresize = true,
+			autoresize = false,
 			size = 2,
 			value = signal.query,
 			border_label = "Query",
@@ -55,30 +83,50 @@ function M.get_issues(opts)
 			max_lines = 1,
 			on_change = function(value, component)
 				signal.query = value
-
-				component:modify_buffer_content(function()
-					component:set_border_text("bottom", ("matches: %d"):format(#signal.issues:get_value()), "right")
-				end)
+			end,
+			on_mount = function(component)
+				signal.component_query = component
 			end,
 		}),
-		n.tree({
-			border_label = "Select issue",
-			selected = signal.selected,
-			data = signal.issues,
-			on_select = function(node, component)
-				local tree = component:get_tree()
-				signal.selected = node
-				tree:render()
-			end,
-			prepare_node = function(node, line, component)
-				line:append(node.summary)
+		n.buffer({
+			flex = 1,
+			id = "error_issues",
+			buf = error_issues,
+			autoscroll = false,
+			border_label = "Error",
+			hidden = signal.error_issues:negate(),
+		}),
+		n.rows(
+			{
+				flex = 0,
+				hidden = signal.has_issues:negate(),
+			},
+			n.tree({
+				size = 10,
+				border_label = "Select issue",
+				data = signal.issues,
+				on_select = function(node, component)
+					local tree = component:get_tree()
+					signal.selected = node
+					tree:render()
+				end,
+				prepare_node = function(node, line, component)
+					line:append(("[%s]"):format(node.project.name), "@class")
+					line:append((" %s"):format(node.idReadable), "@constant")
+					line:append((" %s"):format(node.type, "@comment"))
+					line:append((" %s"):format(node.summary, "@string"))
 
-				return line
-			end,
-		})
+					return line
+				end,
+			})
+		)
 	)
 
-	local renderer = M.get_renderer(body)
+	local renderer = n.create_renderer({
+		width = 120,
+		position = "50%",
+		relative = "editor",
+	})
 	renderer:add_mappings({
 		{
 			mode = { "n" },
@@ -94,16 +142,6 @@ function M.get_issues(opts)
 	-- end)
 
 	renderer:render(body)
-end
-
-function M.get_renderer(body)
-	local renderer = n.create_renderer({
-		width = 80,
-		height = 40,
-		relative = "editor",
-	})
-
-	return renderer
 end
 
 return M

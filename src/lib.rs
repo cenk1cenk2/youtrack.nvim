@@ -86,7 +86,7 @@ pub fn youtrack_lib(lua: &'static Lua) -> mlua::Result<LuaTable> {
         })?,
     )?;
 
-    export_async_fn!(lua, exports, Some("get_issues"), get_issues, GetIssuesArgs)?;
+    export_async_fn!(lua, exports, None, get_issues, GetIssuesArgs)?;
 
     Ok(exports)
 }
