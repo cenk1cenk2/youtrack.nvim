@@ -37,10 +37,10 @@ macro_rules! export_async_fn {
             $name.unwrap_or(stringify!($fn)),
             $lua.create_function(move |lua: &'static Lua, args: $args| {
                 let f = $lua
-                    .create_async_function(|lua: &'static Lua, args: $args| async move {
-                        $fn(lua, lua.app_data_ref::<Module>().unwrap(), args)
-                            .await
-                            .map_err(|err| err.into_lua_err())?;
+                    .create_async_function(async move |lua: &'static Lua, args: $args| {
+                        let m = lua.app_data_ref::<Module>().ok_or_else(|| Error::NoSetup)?;
+
+                        $fn(lua, m, args).await.map_err(|err| err.into_lua_err())?;
 
                         Ok(())
                     })
@@ -69,5 +69,6 @@ macro_rules! export_async_fn {
 }
 
 pub(crate) use export_async_fn;
+pub(crate) use export_fn;
 pub(crate) use from_lua;
 pub(crate) use into_lua;

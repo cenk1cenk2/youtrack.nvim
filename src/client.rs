@@ -3,6 +3,7 @@ use mlua::{AppDataRef, Lua};
 use serde::{Deserialize, Serialize};
 
 use crate::error::Error;
+use crate::lua::NoData;
 use crate::macros::{self, from_lua, into_lua};
 use crate::Module;
 
@@ -48,7 +49,7 @@ pub async fn get_issues(
     lua: &Lua,
     m: AppDataRef<'static, Module>,
     (options, callback): GetIssuesArgs<'_>,
-) -> Result<(), Error> {
+) -> Result<NoData, Error> {
     let res = m
         .client
         .issues_get(
@@ -103,5 +104,5 @@ pub async fn get_issues(
         }
     }
 
-    Ok(())
+    Ok(NoData)
 }
