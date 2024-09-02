@@ -1,7 +1,5 @@
-use crate::api::types::*;
 use mlua::prelude::*;
 use mlua::{AppDataRef, Lua};
-use progenitor_client::ResponseValue;
 use serde::{Deserialize, Serialize};
 
 use crate::error::Error;
