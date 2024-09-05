@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use mlua::prelude::*;
 use mlua::{AppDataRef, Lua};
 use serde::{Deserialize, Serialize};
@@ -8,6 +6,7 @@ use crate::error::Error;
 use crate::lua::NoData;
 use crate::macros::{self, from_lua, into_lua};
 use crate::Module;
+use serde_json::Value as JsonValue;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Pagination {
@@ -77,47 +76,55 @@ pub async fn get_issues(
 
     url.path_segments_mut().unwrap().push("issues");
 
-    let req = m.client.get(url).query(&[
+    let query: Vec<(&str, JsonValue)> = vec![
         (
             "fields",
-            "id,idReadable,summary,description,project(id,name),customFields(name,value(name))",
+            JsonValue::String(
+                "id,idReadable,summary,description,project(id,name),customFields(name,value(name))"
+                    .into(),
+            ),
         ),
-        ("customFields", "Priority"),
-        ("customFields", "Subsystem"),
+        ("customFields", JsonValue::String("Priority".into())),
+        ("customFields", JsonValue::String("Subsystem".into())),
         (
             "query",
-            options
-                .clone()
-                .unwrap_or_default()
-                .query
-                .unwrap_or_default()
-                .as_str(),
+            JsonValue::String(
+                options
+                    .clone()
+                    .unwrap_or_default()
+                    .query
+                    .unwrap_or_default(),
+            ),
         ),
         (
             "$top",
-            options
-                .clone()
-                .unwrap_or_default()
-                .page
-                .unwrap_or_default()
-                .take
-                .unwrap_or_default()
-                .to_string()
-                .as_str(),
+            JsonValue::Number(
+                options
+                    .clone()
+                    .unwrap_or_default()
+                    .page
+                    .unwrap_or_default()
+                    .take
+                    .unwrap_or_default()
+                    .into(),
+            ),
         ),
         (
             "$skip",
-            options
-                .clone()
-                .unwrap_or_default()
-                .page
-                .unwrap_or_default()
-                .skip
-                .unwrap_or_default()
-                .to_string()
-                .as_str(),
+            JsonValue::Number(
+                options
+                    .clone()
+                    .unwrap_or_default()
+                    .page
+                    .unwrap_or_default()
+                    .skip
+                    .unwrap_or_default()
+                    .into(),
+            ),
         ),
-    ]);
+    ];
+
+    let req = m.client.get(url).query(&query);
 
     log::debug!("Youtrack issues request: {:?}", req);
 
@@ -125,7 +132,7 @@ pub async fn get_issues(
 
     match res.status() {
         reqwest::StatusCode::OK => {
-            let json: serde_json::Value = res.json().await?;
+            let json: JsonValue = res.json().await?;
             log::debug!(
                 "Youtrack issues matching: {:?} -> {:#?}",
                 options.unwrap_or_default(),
@@ -146,38 +153,54 @@ pub async fn get_issues(
     Ok(NoData)
 }
 
-// #[allow(unused_variables)]
-// pub async fn get_issue(
-//     lua: &Lua,
-//     m: AppDataRef<'static, Module>,
-//     (options, callback): GetIssueArgs<'_>,
-// ) -> Result<NoData, Error> {
-//     let res = m
-//         .client
-//         .issues_id_get(
-//             options.clone().id.as_str(),
-//             Some("id,idReadable,summary,description,project(id,name)"),
-//         )
-//         .await;
-//
-//     match res {
-//         Ok(res) => {
-//             log::debug!("Youtrack issue detail: {:?} -> {:?}", options, res);
-//             callback.call((LuaNil, res.into_inner().into_lua(lua)))?;
-//         }
-//         Err(err) => {
-//             let e = Error::Client(err);
-//             log::debug!(
-//                 "Youtrack issue detail can not be fetched: {:?} -> {}",
-//                 options,
-//                 e
-//             );
-//             callback.call((e.to_string(), LuaNil))?;
-//         }
-//     }
-//
-//     Ok(NoData)
-// }
+#[allow(unused_variables)]
+pub async fn get_issue(
+    lua: &Lua,
+    m: AppDataRef<'static, Module>,
+    (options, callback): GetIssueArgs<'_>,
+) -> Result<NoData, Error> {
+    let mut url = m.api_url.clone();
+
+    url.path_segments_mut()
+        .unwrap()
+        .push("issues")
+        .push(options.clone().id.as_str());
+
+    let query: Vec<(&str, JsonValue)> = vec![(
+        "fields",
+        JsonValue::String(
+            "id,idReadable,summary,description,project(id,name),customFields(name,value(name))"
+                .into(),
+        ),
+    )];
+
+    let req = m.client.get(url).query(&query);
+
+    log::debug!("Youtrack issue detail request: {:?}", req);
+
+    let res = req.send().await?;
+
+    match res.status() {
+        reqwest::StatusCode::OK => {
+            let json: JsonValue = res.json().await?;
+            log::debug!("Youtrack issues matching: {:?} -> {:#?}", options, json);
+            callback.call((LuaNil, lua.to_value(&json)))?;
+        }
+        _ => {
+            log::debug!(
+                "Youtrack issues can not be fetched: {:?} -> {:#?}",
+                options,
+                res.text().await?
+            );
+            callback.call((
+                format!("Can not fetch youtrack issue: {}", options.id),
+                LuaNil,
+            ))?;
+        }
+    }
+
+    Ok(NoData)
+}
 //
 // #[allow(unused_variables)]
 // pub async fn apply_command(
