@@ -37,16 +37,14 @@ macro_rules! export_async_fn {
             $name.unwrap_or(stringify!($fn)),
             $lua.create_function(move |lua: &'static Lua, args: $args| {
                 let f = $lua
-                    .create_async_function(async move |lua: &'static Lua, args: $args| {
+                    .create_async_function(|lua: &'static Lua, args: $args| async move {
                         let m = lua.app_data_ref::<Module>().ok_or_else(|| Error::NoSetup)?;
 
                         $fn(lua, m, args).await.map_err(|err| err.into_lua_err())?;
 
-                        Ok(())
-                    })
-                    .unwrap()
-                    .bind(args)
-                    .unwrap();
+                        Ok(LuaValue::Nil)
+                    })?
+                    .bind(args)?;
 
                 lua.load(mlua::chunk! {
                     local coroutine = coroutine.wrap($f)
@@ -59,8 +57,7 @@ macro_rules! export_async_fn {
                     step()
 
                 })
-                .exec()
-                .unwrap();
+                .exec()?;
 
                 Ok(())
             })?,

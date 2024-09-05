@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use mlua::prelude::*;
 use mlua::{AppDataRef, Lua};
 use serde::{Deserialize, Serialize};
@@ -39,10 +41,31 @@ impl Default for GetIssues {
     }
 }
 
-from_lua!(GetIssues);
 into_lua!(GetIssues);
+from_lua!(GetIssues);
 
 pub type GetIssuesArgs<'lua> = (Option<GetIssues>, LuaFunction<'lua>);
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GetIssue {
+    id: String,
+}
+
+into_lua!(GetIssue);
+from_lua!(GetIssue);
+
+pub type GetIssueArgs<'lua> = (GetIssue, LuaFunction<'lua>);
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ApplyCommand {
+    id: String,
+    query: String,
+}
+
+into_lua!(ApplyCommand);
+from_lua!(ApplyCommand);
+
+pub type ApplyCommandArgs<'lua> = (ApplyCommand, LuaFunction<'lua>);
 
 #[allow(unused_variables)]
 pub async fn get_issues(
@@ -50,60 +73,129 @@ pub async fn get_issues(
     m: AppDataRef<'static, Module>,
     (options, callback): GetIssuesArgs<'_>,
 ) -> Result<NoData, Error> {
-    let res = m
-        .client
-        .issues_get(
-            Some(
-                options
-                    .clone()
-                    .unwrap_or_default()
-                    .page
-                    .unwrap_or_default()
-                    .skip
-                    .unwrap_or_default(),
-            ),
-            Some(
-                options
-                    .clone()
-                    .unwrap_or_default()
-                    .page
-                    .unwrap_or_default()
-                    .take
-                    .unwrap_or_default(),
-            ),
-            // this is not implemented in the openapi spec properly, it can be multiple fields
-            None,
-            Some("id,idReadable,summary,description,project(id,name),customFields(name)"),
-            Some(
-                options
-                    .clone()
-                    .unwrap_or_default()
-                    .query
-                    .unwrap_or_default()
-                    .as_str(),
-            ),
-        )
-        .await;
+    let mut url = m.api_url.clone();
 
-    match res {
-        Ok(res) => {
+    url.path_segments_mut().unwrap().push("issues");
+
+    let req = m.client.get(url).query(&[
+        (
+            "fields",
+            "id,idReadable,summary,description,project(id,name),customFields(name,value(name))",
+        ),
+        ("customFields", "Priority"),
+        ("customFields", "Subsystem"),
+        (
+            "query",
+            options
+                .clone()
+                .unwrap_or_default()
+                .query
+                .unwrap_or_default()
+                .as_str(),
+        ),
+        (
+            "$top",
+            options
+                .clone()
+                .unwrap_or_default()
+                .page
+                .unwrap_or_default()
+                .take
+                .unwrap_or_default()
+                .to_string()
+                .as_str(),
+        ),
+        (
+            "$skip",
+            options
+                .clone()
+                .unwrap_or_default()
+                .page
+                .unwrap_or_default()
+                .skip
+                .unwrap_or_default()
+                .to_string()
+                .as_str(),
+        ),
+    ]);
+
+    log::debug!("Youtrack issues request: {:?}", req);
+
+    let res = req.send().await?;
+
+    match res.status() {
+        reqwest::StatusCode::OK => {
+            let json: serde_json::Value = res.json().await?;
             log::debug!(
-                "Youtrack issues matching: {:?} -> {:?}",
+                "Youtrack issues matching: {:?} -> {:#?}",
                 options.unwrap_or_default(),
-                res
+                json
             );
-            callback.call((LuaNil, res.into_inner().into_lua(lua)))?;
+            callback.call((LuaNil, lua.to_value(&json)))?;
         }
-        Err(err) => {
-            let e = Error::Client(err);
+        _ => {
             log::debug!(
-                "Youtrack issues can not be fetched: {:?} -> {}",
+                "Youtrack issues can not be fetched: {:?} -> {:#?}",
                 options.unwrap_or_default(),
-                e
+                res.text().await?
             );
-            callback.call((e.to_string(), LuaNil))?;
+            callback.call(("Can not fetch youtrack issues.", LuaNil))?;
         }
     }
 
     Ok(NoData)
 }
+
+// #[allow(unused_variables)]
+// pub async fn get_issue(
+//     lua: &Lua,
+//     m: AppDataRef<'static, Module>,
+//     (options, callback): GetIssueArgs<'_>,
+// ) -> Result<NoData, Error> {
+//     let res = m
+//         .client
+//         .issues_id_get(
+//             options.clone().id.as_str(),
+//             Some("id,idReadable,summary,description,project(id,name)"),
+//         )
+//         .await;
+//
+//     match res {
+//         Ok(res) => {
+//             log::debug!("Youtrack issue detail: {:?} -> {:?}", options, res);
+//             callback.call((LuaNil, res.into_inner().into_lua(lua)))?;
+//         }
+//         Err(err) => {
+//             let e = Error::Client(err);
+//             log::debug!(
+//                 "Youtrack issue detail can not be fetched: {:?} -> {}",
+//                 options,
+//                 e
+//             );
+//             callback.call((e.to_string(), LuaNil))?;
+//         }
+//     }
+//
+//     Ok(NoData)
+// }
+//
+// #[allow(unused_variables)]
+// pub async fn apply_command(
+//     lua: &Lua,
+//     m: AppDataRef<'static, Module>,
+//     (options, callback): ApplyCommandArgs<'_>,
+// ) -> Result<NoData, Error> {
+//     let res = m.client.commands_post(
+//         None,
+//         Some(true),
+//         CommandList {
+//             issues: Vec::new()
+//                 .push(Issue {
+//                     id: options.clone().id,
+//                 })
+//                 .borrow(),
+//             query: None,
+//         },
+//     );
+//     Ok(NoData)
+// }

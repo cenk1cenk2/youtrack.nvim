@@ -1,5 +1,6 @@
 use mlua::prelude::*;
 use serde::{Deserialize, Serialize};
+use url::Url;
 use validator::Validate;
 
 use crate::macros::into_lua;
@@ -16,9 +17,7 @@ impl Config {}
 
 impl<'lua> FromLua<'lua> for Config {
     fn from_lua(value: LuaValue<'lua>, lua: &'lua Lua) -> LuaResult<Self> {
-        let mut c: Config = lua.from_value(value)?;
-
-        c.url = format!("{}/api", c.url);
+        let c: Config = lua.from_value(value)?;
 
         match c.validate() {
             Ok(_) => Ok(c),

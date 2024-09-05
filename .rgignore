@@ -3,3 +3,4 @@ Cargo.lock
 Makefile
 Taskfile.yml
 .gitignore
+/build.rs
