@@ -4,13 +4,11 @@ local M = {
 
 local lib = require("youtrack.lib")
 local log = require("youtrack.log")
-local c = require("youtrack.config")
 
 ---@param config youtrack.Config
 function M.setup(config)
-	vim.tbl_deep_extend("force", c, config or {})
-
 	log.setup()
+	require("youtrack.setup").setup(config)
 	lib.setup(config)
 end
 

@@ -1,52 +1,61 @@
 local M = {
 	_ = {
-		history = {},
+		state = nil,
 	},
 }
 
 local lib = require("youtrack.lib")
 local log = require("youtrack.log")
 local n = require("nui-components")
-local config = require("youtrack.config")
+local setup = require("youtrack.setup")
 
 ---@class youtrack.GetIssuesOptions
----@field query? string
 ---@field toggle? boolean
 
 ---@param opts youtrack.GetIssuesOptions
 function M.get_issues(opts)
-	opts = vim.tbl_extend("force", { query = "for: me #Unresolved" }, opts or {})
+	opts = opts or {}
 
-	local signal = n.create_signal({
-		active = "issues",
-	})
-	local issues_signal = n.create_signal({
-		query = opts.query,
-		has_issues = false,
-		error_issues = false,
-		issues = {},
-		issue = nil,
-	})
-	local issue_signal = n.create_signal({
-		issue = nil,
-	})
+	if not opts.toggle or not M._.state then
+		M._.state = {}
+
+		M._.state.signal = n.create_signal({
+			active = "queries",
+			error = nil,
+		})
+
+		M._.state.signal_query = n.create_signal({
+			queries = vim.list_extend(
+				vim.tbl_map(function(query)
+					return n.node(query)
+				end, setup.config.issues.queries),
+				{ n.node({ name = "Create a new query...", query = "" }) }
+			),
+			query = nil,
+		})
+
+		M._.state.signal_issues = n.create_signal({
+			query = nil,
+			issues = {},
+			issue = nil,
+		})
+
+		M._.state.signal_issue = n.create_signal({
+			issue = nil,
+			should_refresh = nil,
+		})
+	end
+	local signal = M._.state.signal
+	local signal_query = M._.state.signal_query
+	local signal_issues = M._.state.signal_issues
+	local signal_issue = M._.state.signal_issue
 
 	local is_tab_active = n.is_active_factory(signal.active)
 
-	local renderer = n.create_renderer({
-		width = 120,
+	local renderer = n.create_renderer(vim.tbl_deep_extend("force", {}, setup.config.ui, {
 		position = "50%",
 		relative = "editor",
-		keymap = {
-			close = "<Esc>",
-			focus_next = "<Tab>",
-			focus_prev = "<S-Tab>",
-			focus_left = "<Left>",
-			focus_right = "<Right>",
-			focus_up = "<Up>",
-			focus_down = "<Down>",
-		},
-	})
+	}))
 	renderer:add_mappings({
 		{
 			mode = { "n" },
@@ -58,71 +67,88 @@ function M.get_issues(opts)
 	})
 
 	signal.active:observe(function(active)
-		if active == "issues" then
+		if active == "queries" then
+			renderer:set_size({ height = 16 })
+		elseif active == "issues" then
 			renderer:set_size({ height = 16 })
 		elseif active == "issue" then
 			renderer:set_size({ height = 32 })
-			renderer:redraw()
 		end
+		-- renderer:redraw()
 	end)
 
-	issues_signal.query:debounce(500):observe(function(query)
-		local component_query = renderer:get_component_by_id("query")
-		if component_query ~= nil then
-			component_query:set_border_text("bottom", "running...", "right")
+	signal.error:skip(1):observe(function(err)
+		if not err then
+			return
+		end
+
+		local component = renderer:get_component_by_id("error")
+		if component ~= nil then
+			vim.api.nvim_set_option_value("modifiable", true, { buf = component.bufnr })
+			vim.api.nvim_buf_set_lines(component.bufnr, 0, -1, false, vim.split(err, "\n"))
+			vim.api.nvim_set_option_value("modifiable", false, { buf = component.bufnr })
+		end
+
+		signal.active = "error"
+	end)
+
+	signal_query.query:skip(1):observe(function(query)
+		signal_issues.query = query.query
+		signal.active = "issues"
+	end)
+
+	signal_issues.query:skip(1):debounce(500):observe(function(query)
+		if query == nil then
+			return
+		end
+
+		local component = renderer:get_component_by_id("query")
+		if component ~= nil then
+			component:set_border_text("bottom", "running...", "right")
 		end
 
 		lib.get_issues({ query = query }, function(err, res)
 			if err then
-				issues_signal.issues = {}
-				issues_signal.has_issues = false
-				issues_signal.error_issues = true
-
-				if component_query ~= nil then
-					component_query:set_border_text("bottom", "error", "right")
-				end
-
-				local component_error = renderer:get_component_by_id("error")
-				if component_error ~= nil then
-					vim.api.nvim_set_option_value("modifiable", true, { buf = component_error.bufnr })
-					vim.api.nvim_buf_set_lines(component_error.bufnr, 0, -1, false, vim.split(err, "\n"))
-					vim.api.nvim_set_option_value("modifiable", false, { buf = component_error.bufnr })
-				end
-			end
-
-			issues_signal.issues = vim.tbl_map(function(issue)
-				return n.node(issue)
-			end, res or {})
-			issues_signal.has_issues = true
-			issues_signal.error_issues = nil
-
-			if component_query ~= nil then
-				component_query:set_border_text(
-					"bottom",
-					("matches: %d"):format(#issues_signal.issues:get_value()),
-					"right"
-				)
-			end
-		end)
-	end)
-
-	issues_signal.issue:observe(function(issue)
-		if issue == nil then
-			issue_signal.issue = nil
-
-			return
-		end
-
-		M._.history.issue = issue
-
-		lib.get_issue({ id = issue.id }, function(err, res)
-			if err then
-				log.print.error(err)
+				signal_issues.issues = {}
+				signal.error = err
 
 				return
 			end
 
-			issue_signal.issue = res
+			if #res == 0 then
+				signal_issues.issues = {}
+				if component ~= nil then
+					component:set_border_text("bottom", "no match", "right")
+				end
+
+				return
+			end
+
+			local issues = vim.tbl_map(function(issue)
+				return n.node(issue)
+			end, res or {})
+
+			signal_issues.issues = issues
+
+			if component ~= nil then
+				component:set_border_text("bottom", ("matches: %d"):format(#issues), "right")
+			end
+		end)
+	end)
+
+	signal_issues.issue:skip(1):observe(function(issue)
+		if not issue then
+			return
+		end
+
+		lib.get_issue({ id = issue.id }, function(err, res)
+			if err then
+				signal.error = err
+
+				return
+			end
+
+			signal_issue.issue = res
 
 			signal.active = "issue"
 
@@ -136,12 +162,44 @@ function M.get_issues(opts)
 
 				local fields = {}
 				for _, field in ipairs(res.customFields) do
-					if type(field.value) == "table" and field.value.name ~= nil then
-						table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
-					elseif type(field.value) == "string" and field.value ~= nil then
+					if field["$type"] == "PeriodIssueCustomField" and type(field.value.presentation) ~= "userdata" then
+						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-PeriodIssueCustomField.html
+						table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.presentation))
+					elseif field["$type"] == "DateIssueCustomField" and type(field.value) ~= "userdata" then
+						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-DateIssueCustomField.html
+						table.insert(
+							fields,
+							("[ %s: %s ]"):format(field.name, os.date("%Y%m%dT%H:%M:%S", field.value / 1000))
+						)
+					elseif field["$type"] == "SimpleIssueCustomField" and type(field.value) ~= "userdata" then
+						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-DateIssueCustomField.html
 						table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value))
-					elseif type(field.value) == "number" then
-						table.insert(fields, ("[ %s: %d ]"):format(field.name, field.value))
+					elseif field["$type"] == "StateIssueCustomField" and type(field.value.name) ~= "userdata" then
+						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-StateIssueCustomField.html
+						table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
+					-- elseif field["$type"] == "SingleBuildIssueCustomField" and type(field.value.name) ~= "userdata" then
+					-- 	-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-SingleBuildIssueCustomField.html
+					-- 	table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
+					elseif field["$type"] == "SingleUserIssueCustomField" and type(field.value.name) ~= "userdata" then
+						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-SingleUserIssueCustomField.html
+						table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
+					elseif field["$type"] == "SingleGroupIssueCustomField" and type(field.value.name) ~= "userdata" then
+						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-SingleGroupIssueCustomField.html
+						table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
+					elseif
+						field["$type"] == "SingleVersionIssueCustomField" and type(field.value.name) ~= "userdata"
+					then
+						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-SingleVersionIssueCustomField.html
+						table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
+					elseif field["$type"] == "SingleOwnedIssueCustomField" and type(field.value.name) ~= "userdata" then
+						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-SingleOwnedIssueCustomField.html
+						table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
+					elseif field["$type"] == "SingleEnumIssueCustomField" and type(field.value.name) ~= "userdata" then
+						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-EnumBundleElement.html
+						table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
+					elseif field["$type"] == "StateMachineIssueCustomField" and type(field.value) ~= "userdata" then
+						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-StateMachineIssueCustomField.html
+						-- table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
 					end
 				end
 				if #fields > 0 then
@@ -166,7 +224,7 @@ function M.get_issues(opts)
 								"",
 								("### %s - %s"):format(
 									comment.author.fullName,
-									os.date("%Y%m%dT%H%M%S", comment.created)
+									os.date("%Y%m%dT%H:%M:%S", comment.created / 1000)
 								),
 								"",
 							}, vim.split(comment.text, "\n"))
@@ -181,30 +239,85 @@ function M.get_issues(opts)
 		end)
 	end)
 
+	signal_issue.should_refresh:skip(1):observe(function(should_refresh)
+		if should_refresh then
+			log.debug("Should refresh the given issue: %s", signal_issue.issue:get_value().idReadable)
+			local issue = signal_issues.issue:get_value()
+			signal_issues.issue = nil
+			signal_issues.issue = issue
+			signal_issue.should_refresh = nil
+		end
+	end)
+
 	local body = n.tabs(
 		{ active_tab = signal.active },
 		n.columns(
 			{ flex = 0 },
 			n.button({
-				border_style = config.ui.border,
+				border_style = setup.config.ui.border,
+				label = "Queries",
+				-- global_press_key = "<S-u>",
+				is_active = is_tab_active("queries"),
+				on_press = function()
+					signal.active = "queries"
+				end,
+			}),
+			n.gap(1),
+			n.button({
+				border_style = setup.config.ui.border,
 				label = "Issues",
 				-- global_press_key = "<S-u>",
 				is_active = is_tab_active("issues"),
 				on_press = function()
 					signal.active = "issues"
 				end,
+				hidden = signal_issues.query:negate(),
 			}),
 			n.gap(1),
 			n.button({
-				border_style = config.ui.border,
+				border_style = setup.config.ui.border,
 				label = "Issue",
 				-- global_press_key = "<S-u>",
 				is_active = is_tab_active("issue"),
 				on_press = function()
 					signal.active = "issue"
 				end,
-				hidden = issues_signal.issue:negate(),
+				hidden = signal_issue.issue:negate(),
 			})
+		),
+		n.tab(
+			{ id = "error" },
+			n.rows(
+				{ flex = 1 },
+				n.buffer({
+					id = "error",
+					border_style = setup.config.ui.border,
+					flex = 1,
+					buf = vim.api.nvim_create_buf(false, true),
+					autoscroll = false,
+					border_label = "Error",
+				})
+			)
+		),
+		n.tab(
+			{ id = "queries" },
+			n.rows(
+				{ flex = 1 },
+				n.tree({
+					size = 12,
+					border_label = "Select query",
+					border_style = setup.config.ui.border,
+					data = signal_query.queries,
+					on_select = function(node, component)
+						signal_query.query = node
+					end,
+					prepare_node = function(node, line, component)
+						line:append(node.name, "@class")
+
+						return line
+					end,
+				})
+			)
 		),
 		n.tab(
 			{
@@ -215,36 +328,27 @@ function M.get_issues(opts)
 				--- text input for query
 				n.text_input({
 					id = "query",
-					border_style = config.ui.border,
+					border_style = setup.config.ui.border,
 					autofocus = true,
 					autoresize = false,
 					size = 2,
-					value = issues_signal.query,
+					-- value = signal_issues.query,
 					border_label = "Query",
 					placeholder = "Enter a youtrack query...",
 					max_lines = 1,
 					on_change = function(value, component)
-						issues_signal.query = value
+						signal_issues.query = value
 					end,
 				}),
-				n.buffer({
-					id = "error",
-					border_style = config.ui.border,
-					flex = 1,
-					buf = vim.api.nvim_create_buf(false, true),
-					autoscroll = false,
-					border_label = "Error",
-					hidden = issues_signal.error_issues:negate(),
-				}),
 				n.tree({
-					size = 10,
+					size = 12,
 					border_label = "Select issue",
-					border_style = config.ui.border,
-					data = issues_signal.issues,
+					border_style = setup.config.ui.border,
+					-- hidden = signal_issues.issues:negate(),
+					data = signal_issues.issues,
 					on_select = function(node, component)
-						local tree = component:get_tree()
-						issues_signal.issue = node
-						tree:render()
+						signal_issues.issue = node
+						component:get_tree():render()
 					end,
 					prepare_node = function(node, line, component)
 						line:append(("[%s]"):format(node.project.name), "@class")
@@ -265,7 +369,7 @@ function M.get_issues(opts)
 					flex = 1,
 				},
 				n.buffer({
-					border_style = config.ui.border,
+					border_style = setup.config.ui.border,
 					flex = 1,
 					id = "issue",
 					buf = vim.api.nvim_create_buf(false, true),
@@ -275,7 +379,7 @@ function M.get_issues(opts)
 				}),
 				n.text_input({
 					id = "command",
-					border_style = config.ui.border,
+					border_style = setup.config.ui.border,
 					border_label = "Command",
 					autofocus = true,
 					autoresize = false,
@@ -285,32 +389,28 @@ function M.get_issues(opts)
 				}),
 				n.text_input({
 					id = "comment",
-					border_style = config.ui.border,
+					border_style = setup.config.ui.border,
 					border_label = "Comment",
 					autofocus = false,
 					autoresize = false,
 					size = 1,
 					placeholder = "Enter a comment to apply to issue...",
 				}),
-				n.columns(
+				n.box(
 					{
+						direction = "row",
 						flex = 0,
+						border_style = setup.config.ui.border,
 					},
 					n.button({
 						label = "Send",
-						border_style = config.ui.border,
+						border_style = setup.config.ui.border,
 						on_press = function()
 							local command = renderer:get_component_by_id("command")
 
-							if command == nil then
-								log.error("Command component not found.")
-
-								return
-							end
-
-							if command:get_current_value() ~= nil and command:get_current_value() ~= "" then
+							if command and command:get_current_value() ~= nil and command:get_current_value() ~= "" then
 								lib.apply_issue_command(
-									{ id = issue_signal.issue:get_value().id, query = command:get_current_value() },
+									{ id = signal_issue.issue:get_value().id, query = command:get_current_value() },
 									function(err, res)
 										if err then
 											log.print.error(err)
@@ -318,15 +418,22 @@ function M.get_issues(opts)
 											return
 										end
 
-										command:set_current_value("")
-
 										log.info(
 											"Command applied to issue: %s -> %s with %s",
-											issue_signal.issue:get_value().idReadable,
+											signal_issue.issue:get_value().idReadable,
 											command:get_current_value(),
 											res
 										)
+
+										command:set_current_value("")
+
+										signal_issue.should_refresh = true
 									end
+								)
+							else
+								log.debug(
+									"No command to be applied for the issue: %s",
+									signal_issue.issue:get_value().idReadable
 								)
 							end
 						end,
@@ -334,19 +441,20 @@ function M.get_issues(opts)
 					n.gap(1),
 					n.button({
 						label = "View",
-						border_style = config.ui.border,
+						border_style = setup.config.ui.border,
 						on_press = function()
-							vim.notify(("%s/issue/%s"):format(config.url, issue_signal.issue:get_value().idReadable))
-							-- vim.ui.open(("%s/issue/%s"):format(config.url, issue_signal.issue:get_value().idReadable))
+							vim.ui.open(
+								("%s/issue/%s"):format(setup.config.url, signal_issue.issue:get_value().idReadable)
+							)
 						end,
 					}),
 					n.gap(1),
 					n.button({
 						label = "Close",
-						border_style = config.ui.border,
+						border_style = setup.config.ui.border,
 						on_press = function()
 							signal.active = "issues"
-							issues_signal.issue = nil
+							signal_issues.issue = nil
 						end,
 					})
 				)
@@ -355,10 +463,6 @@ function M.get_issues(opts)
 	)
 
 	renderer:render(body)
-
-	if opts.toggle then
-		issues_signal.issue = M._.history.issue
-	end
 end
 
 return M

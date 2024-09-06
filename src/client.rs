@@ -93,7 +93,7 @@ pub async fn get_issues(
         (
             "fields",
             JsonValue::String(
-                "id,idReadable,summary,description,project(id,name),customFields(name,value(name))"
+                "id,idReadable,summary,description,project(id,name),customFields(name,value)"
                     .into(),
             ),
         ),
@@ -182,7 +182,7 @@ pub async fn get_issue(
     let query: Vec<(&str, JsonValue)> = vec![(
         "fields",
         JsonValue::String(
-            "id,idReadable,summary,description,project(id,name),customFields(name,value(name)),comments(author(fullName),text,created)"
+            "id,idReadable,summary,description,project(id,name),customFields(name,presentation,value($type,name,presentation)),comments(author(fullName),text,created)"
                 .into(),
         ),
     )];
