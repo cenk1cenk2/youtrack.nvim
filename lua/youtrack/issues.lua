@@ -108,6 +108,8 @@ function M.get_issues(opts)
 
 	issues_signal.issue:observe(function(issue)
 		if issue == nil then
+			issue_signal.issue = nil
+
 			return
 		end
 
@@ -146,10 +148,12 @@ function M.get_issues(opts)
 					vim.list_extend(details, { "", vim.fn.join(fields, " | ") })
 				end
 
-				local description = vim.split(res.description, "\n")
-				if #description > 0 then
-					vim.list_extend(details, { "", "## Description", "" })
-					vim.list_extend(details, vim.split(res.description, "\n"))
+				if type(res.description) == "string" then
+					local description = vim.split(res.description or "", "\n")
+					if #description > 0 then
+						vim.list_extend(details, { "", "## Description", "" })
+						vim.list_extend(details, description)
+					end
 				end
 
 				if #res.comments > 0 then
@@ -293,15 +297,6 @@ function M.get_issues(opts)
 						flex = 0,
 					},
 					n.button({
-						label = "Open",
-						border_style = config.ui.border,
-						on_press = function()
-							vim.notify(("%s/issue/%s"):format(config.url, issue_signal.issue:get_value().idReadable))
-							-- vim.ui.open(("%s/issue/%s"):format(config.url, issue_signal.issue:get_value().idReadable))
-						end,
-					}),
-					n.gap(1),
-					n.button({
 						label = "Send",
 						border_style = config.ui.border,
 						on_press = function()
@@ -334,6 +329,24 @@ function M.get_issues(opts)
 									end
 								)
 							end
+						end,
+					}),
+					n.gap(1),
+					n.button({
+						label = "View",
+						border_style = config.ui.border,
+						on_press = function()
+							vim.notify(("%s/issue/%s"):format(config.url, issue_signal.issue:get_value().idReadable))
+							-- vim.ui.open(("%s/issue/%s"):format(config.url, issue_signal.issue:get_value().idReadable))
+						end,
+					}),
+					n.gap(1),
+					n.button({
+						label = "Close",
+						border_style = config.ui.border,
+						on_press = function()
+							signal.active = "issues"
+							issues_signal.issue = nil
 						end,
 					})
 				)
