@@ -6,7 +6,7 @@ use crate::error::Error;
 use crate::lua::NoData;
 use crate::macros::{self, from_lua, into_lua};
 use crate::Module;
-use serde_json::Value as JsonValue;
+use serde_json::{json, Value as JsonValue};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Pagination {
@@ -56,15 +56,28 @@ from_lua!(GetIssue);
 pub type GetIssueArgs<'lua> = (GetIssue, LuaFunction<'lua>);
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ApplyCommand {
+pub struct ApplyIssueCommand {
     id: String,
     query: String,
 }
 
-into_lua!(ApplyCommand);
-from_lua!(ApplyCommand);
+into_lua!(ApplyIssueCommand);
+from_lua!(ApplyIssueCommand);
 
-pub type ApplyCommandArgs<'lua> = (ApplyCommand, LuaFunction<'lua>);
+pub type ApplyIssueCommandArgs<'lua> = (ApplyIssueCommand, LuaFunction<'lua>);
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AddIssueComment {
+    id: String,
+    comment: String,
+}
+
+into_lua!(AddIssueComment);
+from_lua!(AddIssueComment);
+
+pub type AddIssueCommentArgs<'lua> = (AddIssueComment, LuaFunction<'lua>);
+
+// POST issues/_id_/comments -> { "text": "comment" }
 
 #[allow(unused_variables)]
 pub async fn get_issues(
@@ -146,7 +159,7 @@ pub async fn get_issues(
                 options.unwrap_or_default(),
                 res.text().await?
             );
-            callback.call(("Can not fetch youtrack issues.", LuaNil))?;
+            callback.call(("Youtrack issues can not be fetched.", LuaNil))?;
         }
     }
 
@@ -169,7 +182,7 @@ pub async fn get_issue(
     let query: Vec<(&str, JsonValue)> = vec![(
         "fields",
         JsonValue::String(
-            "id,idReadable,summary,description,project(id,name),customFields(name,value(name))"
+            "id,idReadable,summary,description,project(id,name),customFields(name,value(name)),comments(author(fullName),text,created)"
                 .into(),
         ),
     )];
@@ -183,17 +196,17 @@ pub async fn get_issue(
     match res.status() {
         reqwest::StatusCode::OK => {
             let json: JsonValue = res.json().await?;
-            log::debug!("Youtrack issues matching: {:?} -> {:#?}", options, json);
+            log::debug!("Youtrack issue details: {:?} -> {:#?}", options, json);
             callback.call((LuaNil, lua.to_value(&json)))?;
         }
         _ => {
             log::debug!(
-                "Youtrack issues can not be fetched: {:?} -> {:#?}",
+                "Youtrack issue details can not be fetched: {:?} -> {:#?}",
                 options,
                 res.text().await?
             );
             callback.call((
-                format!("Can not fetch youtrack issue: {}", options.id),
+                format!("Youtrack issue details can not be fetched: {}", options.id),
                 LuaNil,
             ))?;
         }
@@ -201,24 +214,50 @@ pub async fn get_issue(
 
     Ok(NoData)
 }
-//
-// #[allow(unused_variables)]
-// pub async fn apply_command(
-//     lua: &Lua,
-//     m: AppDataRef<'static, Module>,
-//     (options, callback): ApplyCommandArgs<'_>,
-// ) -> Result<NoData, Error> {
-//     let res = m.client.commands_post(
-//         None,
-//         Some(true),
-//         CommandList {
-//             issues: Vec::new()
-//                 .push(Issue {
-//                     id: options.clone().id,
-//                 })
-//                 .borrow(),
-//             query: None,
-//         },
-//     );
-//     Ok(NoData)
-// }
+
+#[allow(unused_variables)]
+pub async fn apply_issue_command(
+    lua: &Lua,
+    m: AppDataRef<'static, Module>,
+    (options, callback): ApplyIssueCommandArgs<'_>,
+) -> Result<NoData, Error> {
+    let mut url = m.api_url.clone();
+
+    url.path_segments_mut().unwrap().push("commands");
+
+    let query: Vec<(&str, JsonValue)> = vec![];
+
+    let req = m.client.post(url).query(&query).json(&json!({
+        "issues": [{ "id": options.id }],
+        "query": options.query
+    }));
+
+    log::debug!("Youtrack issue apply command request: {:?}", req);
+
+    let res = req.send().await?;
+
+    match res.status() {
+        reqwest::StatusCode::OK => {
+            let json: JsonValue = res.json().await?;
+            log::debug!(
+                "Youtrack issue command applied: {:?} -> {:#?}",
+                options,
+                json
+            );
+            callback.call((LuaNil, lua.to_value(&json)))?;
+        }
+        _ => {
+            log::debug!(
+                "Youtrack issue command can not be applied: {:?} -> {:#?}",
+                options,
+                res.text().await?
+            );
+            callback.call((
+                format!("Youtrack issue command can not be applied: {}", options.id),
+                LuaNil,
+            ))?;
+        }
+    }
+
+    Ok(NoData)
+}
