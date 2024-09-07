@@ -1,3 +1,5 @@
+.DEFAULT_GOAL := build
+
 ifeq ($(OS),Windows_NT)
 	LIB_EXT = dll
 else
