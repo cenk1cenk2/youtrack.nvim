@@ -173,6 +173,7 @@ function M.get_issues(opts)
 					autoresize = false,
 					size = 1,
 					placeholder = "Enter a command to apply to issue...",
+					value = "",
 					max_lines = 1,
 				}),
 				n.text_input({
@@ -182,6 +183,7 @@ function M.get_issues(opts)
 					autofocus = false,
 					autoresize = false,
 					size = 1,
+					value = "",
 					placeholder = "Enter a comment to apply to issue...",
 				}),
 				n.box(
