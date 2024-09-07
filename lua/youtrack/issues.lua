@@ -447,11 +447,11 @@ function M.get_issues(opts)
 							}, vim.split(comment.text, "\n"))
 						)
 					end
-
-					component:modify_buffer_content(function()
-						vim.api.nvim_buf_set_lines(component.bufnr, 0, -1, false, details)
-					end)
 				end
+
+				component:modify_buffer_content(function()
+					vim.api.nvim_buf_set_lines(component.bufnr, 0, -1, false, details)
+				end)
 			end
 
 			signal.active = "issue"
