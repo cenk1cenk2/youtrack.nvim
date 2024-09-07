@@ -463,6 +463,7 @@ function M.get_issues(opts)
 			signal_issues.issue = nil
 			signal_issues.issue = issue
 			signal_issue.should_refresh = nil
+			renderer:redraw()
 		end
 	end)
 
