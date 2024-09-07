@@ -427,7 +427,7 @@ function M.get_issues(opts)
 					end
 				end
 
-				if #res.comments > 0 then
+				if type(res.comments) == "table" and #res.comments > 0 then
 					vim.list_extend(details, { "", "## Comments" })
 
 					table.sort(res.comments, function(a, b)
