@@ -77,8 +77,6 @@ from_lua!(AddIssueComment);
 
 pub type AddIssueCommentArgs<'lua> = (AddIssueComment, LuaFunction<'lua>);
 
-// POST issues/_id_/comments -> { "text": "comment" }
-
 #[allow(unused_variables)]
 pub async fn get_issues(
     lua: &Lua,
@@ -254,6 +252,52 @@ pub async fn apply_issue_command(
             );
             callback.call((
                 format!("Youtrack issue command can not be applied: {}", options.id),
+                LuaNil,
+            ))?;
+        }
+    }
+
+    Ok(NoData)
+}
+
+#[allow(unused_variables)]
+pub async fn add_issue_comment(
+    lua: &Lua,
+    m: AppDataRef<'static, Module>,
+    (options, callback): AddIssueCommentArgs<'_>,
+) -> Result<NoData, Error> {
+    let mut url = m.api_url.clone();
+
+    url.path_segments_mut()
+        .unwrap()
+        .push("issues")
+        .push(options.clone().id.as_str())
+        .push("comments");
+
+    let query: Vec<(&str, JsonValue)> = vec![];
+
+    let req = m.client.post(url).query(&query).json(&json!({
+        "text": options.comment
+    }));
+
+    log::debug!("Youtrack issue add comment request: {:?}", req);
+
+    let res = req.send().await?;
+
+    match res.status() {
+        reqwest::StatusCode::OK => {
+            let json: JsonValue = res.json().await?;
+            log::debug!("Youtrack issue comment added: {:?} -> {:#?}", options, json);
+            callback.call((LuaNil, lua.to_value(&json)))?;
+        }
+        _ => {
+            log::debug!(
+                "Youtrack issue comment can not be added: {:?} -> {:#?}",
+                options,
+                res.text().await?
+            );
+            callback.call((
+                format!("Youtrack issue comment can not be added: {}", options.id),
                 LuaNil,
             ))?;
         }

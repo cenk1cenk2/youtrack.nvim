@@ -47,10 +47,14 @@ M.config = {
 ---@type youtrack.LoggerSetupFn
 function M.setup()
 	local log = function(mode, sprintf, ...)
-		local info = debug.getinfo(2, "Sl")
-		local lineinfo = ("%s:%s"):format(info.short_src, info.currentline)
-
-		local console = string.format("[%-5s] [%s]: %s", mode.name:upper(), lineinfo, sprintf(...))
+		local console
+		if mode.level >= vim.log.levels.INFO then
+			console = string.format("%s", sprintf(...))
+		else
+			local info = debug.getinfo(2, "Sl")
+			local lineinfo = ("%s:%s"):format(info.short_src, info.currentline)
+			console = string.format("[%-5s] [%s]: %s", mode.name:upper(), lineinfo, sprintf(...))
+		end
 
 		for _, line in ipairs(vim.split(console, "\n")) do
 			vim.notify(([[[%s] %s]]):format(M.config.plugin, line), mode.level)
