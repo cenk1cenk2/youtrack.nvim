@@ -428,6 +428,10 @@ function M.get_issues(opts)
 				if #res.comments > 0 then
 					vim.list_extend(details, { "", "## Comments" })
 
+					table.sort(res.comments, function(a, b)
+						return a.created > b.created
+					end)
+
 					for _, comment in ipairs(res.comments) do
 						vim.list_extend(
 							details,
