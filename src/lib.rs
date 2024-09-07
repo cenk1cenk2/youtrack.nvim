@@ -9,9 +9,9 @@ use mlua::prelude::*;
 use reqwest::header::{self, HeaderMap};
 use structured_logger::Builder;
 use tokio::runtime::Runtime;
+use url::Url;
 use writer::LuaWriter;
 
-mod api;
 mod client;
 mod config;
 mod error;
@@ -21,8 +21,8 @@ mod writer;
 
 struct Module {
     pub config: Config,
-    pub client: api::Client,
-    guard: tokio::runtime::EnterGuard<'static>,
+    pub client: reqwest::Client,
+    pub api_url: Url,
 }
 
 impl Module {
@@ -30,7 +30,6 @@ impl Module {
         let _ = Builder::with_level(log::Level::Trace.as_str())
             .with_target_writer("*", LuaWriter::new(lua, "youtrack.log")?.get())
             .try_init()
-            .map_err(|err| log::error!("{}", err))
             .map(|_| {
                 log::debug!("Setup the logger for the library.");
             });
@@ -47,21 +46,21 @@ impl Module {
             )?,
         );
 
-        let client = api::Client::new_with_client(
-            config.clone().url.as_str(),
-            reqwest::Client::builder()
-                .user_agent("youtrack-nvim")
-                .default_headers(headers)
-                .build()?,
-        );
-        log::debug!("Setup the client with url: {}", config.url);
+        let api_url = Url::parse(config.url.as_str())?.join("/api")?;
+
+        let client = reqwest::Client::builder()
+            .user_agent("youtrack-nvim")
+            .default_headers(headers)
+            .build()?;
+        log::debug!("Setup the client with url: {}", api_url);
 
         let guard = RUNTIME.enter();
+        lua.set_app_data(guard);
 
         lua.set_app_data(Self {
             config,
             client,
-            guard,
+            api_url,
         });
 
         Ok(NoData {})
@@ -76,7 +75,7 @@ static RUNTIME: once_cell::sync::Lazy<Runtime> = once_cell::sync::Lazy::new(|| {
 });
 
 #[mlua::lua_module(skip_memory_check)]
-pub fn youtrack_lib(lua: &'static Lua) -> mlua::Result<LuaTable> {
+pub fn youtrack_lib(lua: &'static Lua) -> mlua::Result<LuaTable<'static>> {
     let exports = lua.create_table()?;
 
     exports.set(
@@ -87,6 +86,15 @@ pub fn youtrack_lib(lua: &'static Lua) -> mlua::Result<LuaTable> {
     )?;
 
     export_async_fn!(lua, exports, None, get_issues, GetIssuesArgs)?;
+    export_async_fn!(lua, exports, None, get_issue, GetIssueArgs)?;
+    export_async_fn!(
+        lua,
+        exports,
+        None,
+        apply_issue_command,
+        ApplyIssueCommandArgs
+    )?;
+    export_async_fn!(lua, exports, None, add_issue_comment, AddIssueCommentArgs)?;
 
     Ok(exports)
 }

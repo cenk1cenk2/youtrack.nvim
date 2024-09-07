@@ -6,6 +6,7 @@ use crate::error::Error;
 use crate::lua::NoData;
 use crate::macros::{self, from_lua, into_lua};
 use crate::Module;
+use serde_json::{json, Value as JsonValue};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Pagination {
@@ -39,10 +40,42 @@ impl Default for GetIssues {
     }
 }
 
-from_lua!(GetIssues);
 into_lua!(GetIssues);
+from_lua!(GetIssues);
 
 pub type GetIssuesArgs<'lua> = (Option<GetIssues>, LuaFunction<'lua>);
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GetIssue {
+    id: String,
+}
+
+into_lua!(GetIssue);
+from_lua!(GetIssue);
+
+pub type GetIssueArgs<'lua> = (GetIssue, LuaFunction<'lua>);
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ApplyIssueCommand {
+    id: String,
+    query: String,
+}
+
+into_lua!(ApplyIssueCommand);
+from_lua!(ApplyIssueCommand);
+
+pub type ApplyIssueCommandArgs<'lua> = (ApplyIssueCommand, LuaFunction<'lua>);
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AddIssueComment {
+    id: String,
+    comment: String,
+}
+
+into_lua!(AddIssueComment);
+from_lua!(AddIssueComment);
+
+pub type AddIssueCommentArgs<'lua> = (AddIssueComment, LuaFunction<'lua>);
 
 #[allow(unused_variables)]
 pub async fn get_issues(
@@ -50,58 +83,223 @@ pub async fn get_issues(
     m: AppDataRef<'static, Module>,
     (options, callback): GetIssuesArgs<'_>,
 ) -> Result<NoData, Error> {
-    let res = m
-        .client
-        .issues_get(
-            Some(
+    let mut url = m.api_url.clone();
+
+    url.path_segments_mut().unwrap().push("issues");
+
+    let query: Vec<(&str, JsonValue)> = vec![
+        (
+            "fields",
+            JsonValue::String(
+                "id,idReadable,summary,description,project(id,name),customFields(name,value)"
+                    .into(),
+            ),
+        ),
+        ("customFields", JsonValue::String("Priority".into())),
+        ("customFields", JsonValue::String("Subsystem".into())),
+        (
+            "query",
+            JsonValue::String(
                 options
                     .clone()
                     .unwrap_or_default()
-                    .page
-                    .unwrap_or_default()
-                    .skip
+                    .query
                     .unwrap_or_default(),
             ),
-            Some(
+        ),
+        (
+            "$top",
+            JsonValue::Number(
                 options
                     .clone()
                     .unwrap_or_default()
                     .page
                     .unwrap_or_default()
                     .take
-                    .unwrap_or_default(),
+                    .unwrap_or_default()
+                    .into(),
             ),
-            // this is not implemented in the openapi spec properly, it can be multiple fields
-            None,
-            Some("id,idReadable,summary,description,project(id,name),customFields(name)"),
-            Some(
+        ),
+        (
+            "$skip",
+            JsonValue::Number(
                 options
                     .clone()
                     .unwrap_or_default()
-                    .query
+                    .page
                     .unwrap_or_default()
-                    .as_str(),
+                    .skip
+                    .unwrap_or_default()
+                    .into(),
             ),
-        )
-        .await;
+        ),
+    ];
 
-    match res {
-        Ok(res) => {
+    let req = m.client.get(url).query(&query);
+
+    log::debug!("Youtrack issues request: {:?}", req);
+
+    let res = req.send().await?;
+
+    match res.status() {
+        reqwest::StatusCode::OK => {
+            let json: JsonValue = res.json().await?;
             log::debug!(
-                "Youtrack issues matching: {:?} -> {:?}",
+                "Youtrack issues matching: {:?} -> {:#?}",
                 options.unwrap_or_default(),
-                res
+                json
             );
-            callback.call((LuaNil, res.into_inner().into_lua(lua)))?;
+            callback.call((LuaNil, lua.to_value(&json)))?;
         }
-        Err(err) => {
-            let e = Error::Client(err);
+        _ => {
             log::debug!(
-                "Youtrack issues can not be fetched: {:?} -> {}",
+                "Youtrack issues can not be fetched: {:?} -> {:#?}",
                 options.unwrap_or_default(),
-                e
+                res.text().await?
             );
-            callback.call((e.to_string(), LuaNil))?;
+            callback.call(("Youtrack issues can not be fetched.", LuaNil))?;
+        }
+    }
+
+    Ok(NoData)
+}
+
+#[allow(unused_variables)]
+pub async fn get_issue(
+    lua: &Lua,
+    m: AppDataRef<'static, Module>,
+    (options, callback): GetIssueArgs<'_>,
+) -> Result<NoData, Error> {
+    let mut url = m.api_url.clone();
+
+    url.path_segments_mut()
+        .unwrap()
+        .push("issues")
+        .push(options.clone().id.as_str());
+
+    let query: Vec<(&str, JsonValue)> = vec![(
+        "fields",
+        JsonValue::String(
+            "id,idReadable,summary,description,project(id,name),customFields(name,presentation,value($type,name,presentation)),comments(author(fullName),text,created)"
+                .into(),
+        ),
+    )];
+
+    let req = m.client.get(url).query(&query);
+
+    log::debug!("Youtrack issue detail request: {:?}", req);
+
+    let res = req.send().await?;
+
+    match res.status() {
+        reqwest::StatusCode::OK => {
+            let json: JsonValue = res.json().await?;
+            log::debug!("Youtrack issue details: {:?} -> {:#?}", options, json);
+            callback.call((LuaNil, lua.to_value(&json)))?;
+        }
+        _ => {
+            log::debug!(
+                "Youtrack issue details can not be fetched: {:?} -> {:#?}",
+                options,
+                res.text().await?
+            );
+            callback.call((
+                format!("Youtrack issue details can not be fetched: {}", options.id),
+                LuaNil,
+            ))?;
+        }
+    }
+
+    Ok(NoData)
+}
+
+#[allow(unused_variables)]
+pub async fn apply_issue_command(
+    lua: &Lua,
+    m: AppDataRef<'static, Module>,
+    (options, callback): ApplyIssueCommandArgs<'_>,
+) -> Result<NoData, Error> {
+    let mut url = m.api_url.clone();
+
+    url.path_segments_mut().unwrap().push("commands");
+
+    let query: Vec<(&str, JsonValue)> = vec![];
+
+    let req = m.client.post(url).query(&query).json(&json!({
+        "issues": [{ "id": options.id }],
+        "query": options.query
+    }));
+
+    log::debug!("Youtrack issue apply command request: {:?}", req);
+
+    let res = req.send().await?;
+
+    match res.status() {
+        reqwest::StatusCode::OK => {
+            let json: JsonValue = res.json().await?;
+            log::debug!(
+                "Youtrack issue command applied: {:?} -> {:#?}",
+                options,
+                json
+            );
+            callback.call((LuaNil, lua.to_value(&json)))?;
+        }
+        _ => {
+            log::debug!(
+                "Youtrack issue command can not be applied: {:?} -> {:#?}",
+                options,
+                res.text().await?
+            );
+            callback.call((
+                format!("Youtrack issue command can not be applied: {}", options.id),
+                LuaNil,
+            ))?;
+        }
+    }
+
+    Ok(NoData)
+}
+
+#[allow(unused_variables)]
+pub async fn add_issue_comment(
+    lua: &Lua,
+    m: AppDataRef<'static, Module>,
+    (options, callback): AddIssueCommentArgs<'_>,
+) -> Result<NoData, Error> {
+    let mut url = m.api_url.clone();
+
+    url.path_segments_mut()
+        .unwrap()
+        .push("issues")
+        .push(options.clone().id.as_str())
+        .push("comments");
+
+    let query: Vec<(&str, JsonValue)> = vec![];
+
+    let req = m.client.post(url).query(&query).json(&json!({
+        "text": options.comment
+    }));
+
+    log::debug!("Youtrack issue add comment request: {:?}", req);
+
+    let res = req.send().await?;
+
+    match res.status() {
+        reqwest::StatusCode::OK => {
+            let json: JsonValue = res.json().await?;
+            log::debug!("Youtrack issue comment added: {:?} -> {:#?}", options, json);
+            callback.call((LuaNil, lua.to_value(&json)))?;
+        }
+        _ => {
+            log::debug!(
+                "Youtrack issue comment can not be added: {:?} -> {:#?}",
+                options,
+                res.text().await?
+            );
+            callback.call((
+                format!("Youtrack issue comment can not be added: {}", options.id),
+                LuaNil,
+            ))?;
         }
     }
 

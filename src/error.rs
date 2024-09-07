@@ -9,10 +9,11 @@ use mlua::prelude::LuaError;
 #[derive(Debug)]
 pub enum Error {
     NoSetup,
-    Generic(String),
+    Str(String),
+    Std(Box<dyn std::error::Error + Send + Sync>),
     Validation(validator::ValidationErrors),
     HttpClient(reqwest::Error),
-    Client(progenitor_client::Error),
+    Url(url::ParseError),
     Lua(mlua::Error),
     Logger(SetLoggerError),
 }
@@ -27,13 +28,20 @@ impl Display for Error {
                 f,
                 "Library did not get setup correctly. Did you call setup?"
             ),
-            Generic(ref err) => write!(f, "{}", err),
+            Str(ref err) => write!(f, "{}", err),
+            Std(ref err) => <dyn std::error::Error as fmt::Display>::fmt(&**err, f),
             Validation(ref err) => <validator::ValidationErrors as fmt::Display>::fmt(err, f),
             HttpClient(ref err) => <reqwest::Error as fmt::Display>::fmt(err, f),
-            Client(ref err) => <progenitor_client::Error as fmt::Display>::fmt(err, f),
+            Url(ref err) => <url::ParseError as fmt::Display>::fmt(err, f),
             Lua(ref err) => <LuaError as fmt::Display>::fmt(err, f),
             Logger(ref err) => <SetLoggerError as fmt::Display>::fmt(err, f),
         }
+    }
+}
+
+impl From<Box<dyn std::error::Error + Send + Sync>> for Error {
+    fn from(err: Box<dyn std::error::Error + Send + Sync>) -> Self {
+        Self::Std(err)
     }
 }
 
@@ -46,7 +54,7 @@ impl From<validator::ValidationErrors> for Error {
 impl From<reqwest::Error> for Error {
     fn from(err: reqwest::Error) -> Self {
         if err.is_status() {
-            return Self::Generic(
+            return Self::Str(
                 err.status()
                     .unwrap()
                     .canonical_reason()
@@ -59,13 +67,9 @@ impl From<reqwest::Error> for Error {
     }
 }
 
-impl From<progenitor_client::Error> for Error {
-    fn from(err: progenitor_client::Error) -> Self {
-        if let Some(status) = err.status() {
-            return Self::Generic(format!("{}: {}", status.canonical_reason().unwrap(), err));
-        }
-
-        Self::Client(err)
+impl From<url::ParseError> for Error {
+    fn from(err: url::ParseError) -> Self {
+        Self::Url(err)
     }
 }
 
@@ -83,9 +87,8 @@ impl From<LuaError> for Error {
 
 impl From<Error> for mlua::Error {
     fn from(err: Error) -> Self {
-        use Error::*;
         match err {
-            Lua(err) => err,
+            Error::Lua(err) => err,
             err => LuaError::ExternalError(Arc::new(err)),
         }
     }

@@ -2,9 +2,6 @@ use mlua::prelude::*;
 use mlua::{FromLua, IntoLua};
 use serde::{Deserialize, Serialize};
 
-use crate::api::types::Issue;
-use crate::macros::into_lua;
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NoData;
 
@@ -19,5 +16,3 @@ impl<'lua> IntoLua<'lua> for NoData {
         Ok(mlua::Value::Nil)
     }
 }
-
-into_lua!(Issue);
