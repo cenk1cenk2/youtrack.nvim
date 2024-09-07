@@ -482,6 +482,8 @@ function M.get_issues(opts)
 			end,
 			prepare_node = function(node, line, component)
 				line:append(node.name, "@class")
+				line:append(" ")
+				line:append(node.query, "@comment")
 
 				return line
 			end,
