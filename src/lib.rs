@@ -1,5 +1,3 @@
-#![feature(async_closure)]
-
 use crate::config::Config;
 use client::*;
 use error::Error;
