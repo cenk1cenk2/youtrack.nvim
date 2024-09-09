@@ -21,7 +21,7 @@ clean:
 
 .PHONY: compile
 compile:
-	cargo +nightly build --release
+	cargo build --release
 
 .PHONY: out
 out:
