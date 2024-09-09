@@ -20,12 +20,7 @@ function M.get_issues(opts)
 		M._.state = {}
 
 		M._.state.signal_queries = n.create_signal({
-			queries = vim.list_extend(
-				vim.tbl_map(function(query)
-					return n.node(query)
-				end, setup.config.issues.queries),
-				{ n.node({ name = "Create a new query...", query = "" }) }
-			),
+			queries = nil,
 			query = nil,
 		})
 
@@ -65,6 +60,27 @@ function M.get_issues(opts)
 			end,
 		},
 	})
+
+	local prebody = n.rows(
+		{ flex = 1 },
+		n.tree({
+			autofocus = true,
+			size = 16,
+			border_label = "Select query",
+			border_style = setup.config.ui.border,
+			data = signal_queries.queries,
+			on_select = function(node, component)
+				signal_queries.query = node
+			end,
+			prepare_node = function(node, line, component)
+				line:append(node.name, "@class")
+				line:append(" ")
+				line:append(node.query, "@comment")
+
+				return line
+			end,
+		})
+	)
 
 	local body = n.tabs(
 		{ active_tab = signal.active },
@@ -469,32 +485,37 @@ function M.get_issues(opts)
 		end
 	end)
 
-	local prebody = n.rows(
-		{ flex = 1 },
-		n.tree({
-			autofocus = true,
-			size = 16,
-			border_label = "Select query",
-			border_style = setup.config.ui.border,
-			data = signal_queries.queries,
-			on_select = function(node, component)
-				signal_queries.query = node
-			end,
-			prepare_node = function(node, line, component)
-				line:append(node.name, "@class")
-				line:append(" ")
-				line:append(node.query, "@comment")
+	lib.get_saved_queries(nil, function(err, res)
+		local queries = {}
 
-				return line
-			end,
-		})
-	)
+		if err then
+			log.print.error(err)
+		else
+			vim.list_extend(
+				queries,
+				vim.tbl_map(function(query)
+					return n.node(query)
+				end, res or {})
+			)
+		end
 
-	if not opts.toggle or not signal_issues.query:get_value() then
-		renderer:render(prebody)
-	else
-		renderer:render(body)
-	end
+		vim.list_extend(
+			queries,
+			vim.tbl_map(function(query)
+				return n.node(query)
+			end, setup.config.issues.queries)
+		)
+
+		vim.list_extend(queries, { n.node({ name = "Create a new query...", query = "" }) })
+
+		signal_queries.queries = queries
+
+		if not opts.toggle or not signal_issues.query:get_value() then
+			renderer:render(prebody)
+		else
+			renderer:render(body)
+		end
+	end)
 end
 
 return M

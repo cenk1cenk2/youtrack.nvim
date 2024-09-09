@@ -10,8 +10,8 @@ use serde_json::{json, Value as JsonValue};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Pagination {
-    skip: Option<i32>,
-    take: Option<i32>,
+    pub skip: Option<i32>,
+    pub take: Option<i32>,
 }
 
 impl Default for Pagination {
@@ -27,8 +27,8 @@ macros::from_lua!(Pagination);
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetIssues {
-    query: Option<String>,
-    page: Option<Pagination>,
+    pub query: Option<String>,
+    pub page: Option<Pagination>,
 }
 
 impl Default for GetIssues {
@@ -44,38 +44,6 @@ into_lua!(GetIssues);
 from_lua!(GetIssues);
 
 pub type GetIssuesArgs<'lua> = (Option<GetIssues>, LuaFunction<'lua>);
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct GetIssue {
-    id: String,
-}
-
-into_lua!(GetIssue);
-from_lua!(GetIssue);
-
-pub type GetIssueArgs<'lua> = (GetIssue, LuaFunction<'lua>);
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ApplyIssueCommand {
-    id: String,
-    query: String,
-}
-
-into_lua!(ApplyIssueCommand);
-from_lua!(ApplyIssueCommand);
-
-pub type ApplyIssueCommandArgs<'lua> = (ApplyIssueCommand, LuaFunction<'lua>);
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct AddIssueComment {
-    id: String,
-    comment: String,
-}
-
-into_lua!(AddIssueComment);
-from_lua!(AddIssueComment);
-
-pub type AddIssueCommentArgs<'lua> = (AddIssueComment, LuaFunction<'lua>);
 
 #[allow(unused_variables)]
 pub async fn get_issues(
@@ -164,6 +132,16 @@ pub async fn get_issues(
     Ok(NoData)
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GetIssue {
+    pub id: String,
+}
+
+into_lua!(GetIssue);
+from_lua!(GetIssue);
+
+pub type GetIssueArgs<'lua> = (GetIssue, LuaFunction<'lua>);
+
 #[allow(unused_variables)]
 pub async fn get_issue(
     lua: &Lua,
@@ -213,6 +191,17 @@ pub async fn get_issue(
     Ok(NoData)
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ApplyIssueCommand {
+    pub id: String,
+    pub query: String,
+}
+
+into_lua!(ApplyIssueCommand);
+from_lua!(ApplyIssueCommand);
+
+pub type ApplyIssueCommandArgs<'lua> = (ApplyIssueCommand, LuaFunction<'lua>);
+
 #[allow(unused_variables)]
 pub async fn apply_issue_command(
     lua: &Lua,
@@ -260,6 +249,17 @@ pub async fn apply_issue_command(
     Ok(NoData)
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AddIssueComment {
+    pub id: String,
+    pub comment: String,
+}
+
+into_lua!(AddIssueComment);
+from_lua!(AddIssueComment);
+
+pub type AddIssueCommentArgs<'lua> = (AddIssueComment, LuaFunction<'lua>);
+
 #[allow(unused_variables)]
 pub async fn add_issue_comment(
     lua: &Lua,
@@ -300,6 +300,93 @@ pub async fn add_issue_comment(
                 format!("Youtrack issue comment can not be added: {}", options.id),
                 LuaNil,
             ))?;
+        }
+    }
+
+    Ok(NoData)
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GetSavedQueries {
+    pub page: Option<Pagination>,
+}
+
+impl Default for GetSavedQueries {
+    fn default() -> Self {
+        GetSavedQueries {
+            page: Some(Pagination::default()),
+        }
+    }
+}
+
+into_lua!(GetSavedQueries);
+from_lua!(GetSavedQueries);
+
+pub type GetSavedQueriesArgs<'lua> = (Option<GetSavedQueries>, LuaFunction<'lua>);
+
+#[allow(unused_variables)]
+pub async fn get_saved_queries(
+    lua: &Lua,
+    m: AppDataRef<'static, Module>,
+    (options, callback): GetSavedQueriesArgs<'_>,
+) -> Result<NoData, Error> {
+    let mut url = m.api_url.clone();
+
+    url.path_segments_mut().unwrap().push("savedQueries");
+
+    let query: Vec<(&str, JsonValue)> = vec![
+        ("fields", JsonValue::String("name,query".into())),
+        (
+            "$top",
+            JsonValue::Number(
+                options
+                    .clone()
+                    .unwrap_or_default()
+                    .page
+                    .unwrap_or_default()
+                    .take
+                    .unwrap_or_default()
+                    .into(),
+            ),
+        ),
+        (
+            "$skip",
+            JsonValue::Number(
+                options
+                    .clone()
+                    .unwrap_or_default()
+                    .page
+                    .unwrap_or_default()
+                    .skip
+                    .unwrap_or_default()
+                    .into(),
+            ),
+        ),
+    ];
+
+    let req = m.client.get(url).query(&query);
+
+    log::debug!("Youtrack issue add comment request: {:?}", req);
+
+    let res = req.send().await?;
+
+    match res.status() {
+        reqwest::StatusCode::OK => {
+            let json: JsonValue = res.json().await?;
+            log::debug!(
+                "Youtrack saved queries fetched: {:?} -> {:#?}",
+                options,
+                json
+            );
+            callback.call((LuaNil, lua.to_value(&json)))?;
+        }
+        _ => {
+            log::debug!(
+                "Youtrack saved queries can not be fetched: {:?} -> {:#?}",
+                options,
+                res.text().await?
+            );
+            callback.call(("Youtrack saved queries can not be fetched.", LuaNil))?;
         }
     }
 
