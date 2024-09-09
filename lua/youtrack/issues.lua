@@ -138,6 +138,7 @@ function M.get_issues(opts)
 					size = 1,
 					border_label = "Query",
 					placeholder = "Enter a youtrack query...",
+					value = signal_issues.query,
 					max_lines = 1,
 					on_change = function(value, component)
 						signal_issues.query = value
