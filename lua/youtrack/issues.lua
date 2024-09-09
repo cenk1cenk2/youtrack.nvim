@@ -486,7 +486,7 @@ function M.get_issues(opts)
 	end)
 
 	lib.get_saved_queries(nil, function(err, res)
-		local queries = {}
+		local queries = { n.node({ name = "Create a new query...", query = "" }) }
 
 		if err then
 			log.print.error(err)
@@ -505,8 +505,6 @@ function M.get_issues(opts)
 				return n.node(query)
 			end, setup.config.issues.queries)
 		)
-
-		vim.list_extend(queries, { n.node({ name = "Create a new query...", query = "" }) })
 
 		signal_queries.queries = queries
 
