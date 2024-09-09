@@ -22,6 +22,7 @@ function M.get_issues(opts)
 		M._.state.signal_queries = n.create_signal({
 			queries = nil,
 			query = nil,
+			input = "",
 		})
 
 		M._.state.signal = n.create_signal({
@@ -134,7 +135,6 @@ function M.get_issues(opts)
 					border_style = setup.config.ui.border,
 					autofocus = true,
 					autoresize = false,
-					value = signal_issues.query,
 					size = 1,
 					border_label = "Query",
 					placeholder = "Enter a youtrack query...",
@@ -189,7 +189,6 @@ function M.get_issues(opts)
 					autoresize = false,
 					size = 1,
 					placeholder = "Enter a command to apply to issue...",
-					value = "",
 					max_lines = 1,
 				}),
 				n.text_input({
@@ -199,7 +198,6 @@ function M.get_issues(opts)
 					autofocus = false,
 					autoresize = false,
 					size = 1,
-					value = "",
 					placeholder = "Enter a comment to apply to issue...",
 				}),
 				n.box(
