@@ -19,19 +19,17 @@ function M.get_issues(opts)
 	if not opts.toggle or not M._.state then
 		M._.state = {}
 
-		M._.state.signal_queries = n.create_signal({
-			queries = nil,
-			query = nil,
-			input = "",
-		})
-
 		M._.state.signal = n.create_signal({
 			active = "issues",
 			error = nil,
 		})
 
+		M._.state.signal_queries = n.create_signal({
+			queries = nil,
+		})
+
 		M._.state.signal_issues = n.create_signal({
-			query = nil,
+			query = "",
 			issues = {},
 			issue = nil,
 		})
@@ -61,27 +59,6 @@ function M.get_issues(opts)
 			end,
 		},
 	})
-
-	local prebody = n.rows(
-		{ flex = 1 },
-		n.tree({
-			autofocus = true,
-			size = 16,
-			border_label = "Select query",
-			border_style = setup.config.ui.border,
-			data = signal_queries.queries,
-			on_select = function(node, component)
-				signal_queries.query = node
-			end,
-			prepare_node = function(node, line, component)
-				line:append(node.name, "@class")
-				line:append(" ")
-				line:append(node.query, "@comment")
-
-				return line
-			end,
-		})
-	)
 
 	local body = n.tabs(
 		{ active_tab = signal.active },
@@ -129,11 +106,36 @@ function M.get_issues(opts)
 			},
 			n.rows(
 				{ flex = 1 },
+				n.tree({
+					autofocus = true,
+					size = 4,
+					border_label = "Select query",
+					border_style = setup.config.ui.border,
+					data = signal_queries.queries,
+					on_select = function(node, component)
+						signal_issues.query = node.query
+
+						local query = renderer:get_component_by_id("query")
+						if query ~= nil then
+							query:set_current_value(query.query)
+							local lines = query:get_lines()
+							vim.api.nvim_buf_set_lines(query.bufnr, 0, #lines, false, lines)
+							query:redraw()
+						end
+					end,
+					prepare_node = function(node, line, component)
+						line:append(node.name, "@class")
+						line:append(" ")
+						line:append(node.query, "@comment")
+
+						return line
+					end,
+				}),
 				--- text input for query
 				n.text_input({
 					id = "query",
 					border_style = setup.config.ui.border,
-					autofocus = true,
+					autofocus = false,
 					autoresize = false,
 					size = 1,
 					border_label = "Query",
@@ -145,7 +147,7 @@ function M.get_issues(opts)
 					end,
 				}),
 				n.tree({
-					size = 12,
+					flex = 1,
 					border_label = "Select issue",
 					border_style = setup.config.ui.border,
 					-- hidden = signal_issues.issues:negate(),
@@ -230,6 +232,8 @@ function M.get_issues(opts)
 										)
 
 										command:set_current_value("")
+										local lines = command:get_lines()
+										vim.api.nvim_buf_set_lines(command.bufnr, 0, #lines, false, lines)
 										command:redraw()
 
 										signal_issue.should_refresh = true
@@ -261,6 +265,8 @@ function M.get_issues(opts)
 										)
 
 										comment:set_current_value("")
+										local lines = comment:get_lines()
+										vim.api.nvim_buf_set_lines(comment.bufnr, 0, #lines, false, lines)
 										comment:redraw()
 
 										signal_issue.should_refresh = true
@@ -301,9 +307,9 @@ function M.get_issues(opts)
 
 	signal.active:observe(function(active)
 		if active == "issues" then
-			renderer:set_size({ height = 16 })
+			renderer:set_size({ height = 24 })
 		elseif active == "issue" then
-			renderer:set_size({ height = 32 })
+			renderer:set_size({ height = 48 })
 		end
 		-- renderer:redraw()
 	end)
@@ -321,12 +327,6 @@ function M.get_issues(opts)
 		end
 
 		signal.active = "error"
-	end)
-
-	signal_queries.query:skip(1):observe(function(query)
-		signal_issues.query = query.query
-		renderer:close()
-		renderer:render(body)
 	end)
 
 	signal_issues.query:skip(1):debounce(500):observe(function(query)
@@ -356,14 +356,12 @@ function M.get_issues(opts)
 				return
 			end
 
-			local issues = vim.tbl_map(function(issue)
+			signal_issues.issues = vim.tbl_map(function(issue)
 				return n.node(issue)
 			end, res or {})
 
-			signal_issues.issues = issues
-
 			if component ~= nil then
-				component:set_border_text("bottom", ("matches: %d"):format(#issues), "right")
+				component:set_border_text("bottom", ("matches: %d"):format(#(res or {})), "right")
 			end
 		end)
 	end)
@@ -485,7 +483,7 @@ function M.get_issues(opts)
 	end)
 
 	lib.get_saved_queries(nil, function(err, res)
-		local queries = { n.node({ name = "Create a new query...", query = "" }) }
+		local queries = { { name = "Create a new query...", query = "" } }
 
 		if err then
 			log.print.error(err)
@@ -498,20 +496,13 @@ function M.get_issues(opts)
 			)
 		end
 
-		vim.list_extend(
-			queries,
-			vim.tbl_map(function(query)
-				return n.node(query)
-			end, setup.config.issues.queries)
-		)
+		vim.list_extend(queries, setup.config.issues.queries)
 
-		signal_queries.queries = queries
+		signal_queries.queries = vim.tbl_map(function(query)
+			return n.node(query)
+		end, queries)
 
-		if not opts.toggle or not signal_issues.query:get_value() then
-			renderer:render(prebody)
-		else
-			renderer:render(body)
-		end
+		renderer:render(body)
 	end)
 end
 

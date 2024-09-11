@@ -1,6 +1,5 @@
 use mlua::prelude::*;
 use serde::{Deserialize, Serialize};
-use url::Url;
 use validator::Validate;
 
 use crate::macros::into_lua;
