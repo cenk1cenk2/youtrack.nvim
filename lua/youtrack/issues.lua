@@ -65,8 +65,9 @@ function M.get_issues(opts)
 		n.columns(
 			{ flex = 0 },
 			n.button({
-				border_style = setup.config.ui.border,
 				label = "Issues",
+				autofocus = false,
+				border_style = setup.config.ui.border,
 				-- global_press_key = "<S-u>",
 				is_active = is_tab_active("issues"),
 				on_press = function()
@@ -76,8 +77,9 @@ function M.get_issues(opts)
 			}),
 			n.gap(1),
 			n.button({
-				border_style = setup.config.ui.border,
 				label = "Issue",
+				autofocus = false,
+				border_style = setup.config.ui.border,
 				-- global_press_key = "<S-u>",
 				is_active = is_tab_active("issue"),
 				on_press = function()
@@ -212,6 +214,7 @@ function M.get_issues(opts)
 					n.button({
 						label = "Send",
 						border_style = setup.config.ui.border,
+						autofocus = false,
 						on_press = function()
 							local command = renderer:get_component_by_id("command")
 							if command and command:get_current_value() ~= nil and command:get_current_value() ~= "" then
@@ -283,6 +286,7 @@ function M.get_issues(opts)
 					n.gap(1),
 					n.button({
 						label = "View",
+						autofocus = false,
 						border_style = setup.config.ui.border,
 						on_press = function()
 							vim.ui.open(
@@ -293,6 +297,7 @@ function M.get_issues(opts)
 					n.gap(1),
 					n.button({
 						label = "Close",
+						autofocus = false,
 						border_style = setup.config.ui.border,
 						on_press = function()
 							signal_issues.issue = nil
