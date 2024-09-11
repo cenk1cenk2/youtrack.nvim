@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::Error;
 use crate::lua::NoData;
 use crate::macros::{self, from_lua, into_lua};
-use crate::Module;
+use crate::{config, Module};
 use serde_json::{json, Value as JsonValue};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -55,7 +55,7 @@ pub async fn get_issues(
 
     url.path_segments_mut().unwrap().push("issues");
 
-    let query: Vec<(&str, JsonValue)> = vec![
+    let mut query: Vec<(&str, JsonValue)> = vec![
         (
             "fields",
             JsonValue::String(
@@ -63,8 +63,6 @@ pub async fn get_issues(
                     .into(),
             ),
         ),
-        ("customFields", JsonValue::String("Priority".into())),
-        ("customFields", JsonValue::String("Subsystem".into())),
         (
             "query",
             JsonValue::String(
@@ -102,6 +100,16 @@ pub async fn get_issues(
             ),
         ),
     ];
+
+    m.config
+        .clone()
+        .issues
+        .issues
+        .fields
+        .iter()
+        .for_each(|field| {
+            query.push(("customFields", JsonValue::String(field.clone())));
+        });
 
     let req = m.client.get(url).query(&query);
 
@@ -334,7 +342,7 @@ pub async fn get_saved_queries(
 
     url.path_segments_mut().unwrap().push("savedQueries");
 
-    let query: Vec<(&str, JsonValue)> = vec![
+    let mut query: Vec<(&str, JsonValue)> = vec![
         ("fields", JsonValue::String("name,query".into())),
         (
             "$top",
@@ -363,6 +371,16 @@ pub async fn get_saved_queries(
             ),
         ),
     ];
+
+    m.config
+        .clone()
+        .issues
+        .issue
+        .fields
+        .iter()
+        .for_each(|field| {
+            query.push(("customFields", JsonValue::String(field.clone())));
+        });
 
     let req = m.client.get(url).query(&query);
 

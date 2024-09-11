@@ -54,7 +54,7 @@ M.config = {
 			fields = {},
 		},
 		issue = {
-			field = {},
+			fields = {},
 		},
 	},
 }

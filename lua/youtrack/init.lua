@@ -8,8 +8,8 @@ local log = require("youtrack.log")
 ---@param config youtrack.Config
 function M.setup(config)
 	log.setup()
-	require("youtrack.setup").setup(config)
-	lib.setup(config)
+	local c = require("youtrack.setup").setup(config)
+	lib.setup(c)
 end
 
 return M

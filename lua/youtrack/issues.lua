@@ -164,6 +164,11 @@ function M.get_issues(opts)
 						line:append((" %s"):format(node.idReadable), "@constant")
 						line:append((" %s"):format(node.summary, "@string"))
 
+						local fields = utils.render_custom_fields(node)
+						if #fields > 0 then
+							line:append((" %s"):format(vim.fn.join(fields, " | ")), "@comment")
+						end
+
 						return line
 					end,
 				})
@@ -396,46 +401,7 @@ function M.get_issues(opts)
 					("# [%s] %s - %s"):format(res.project.name, res.idReadable, res.summary),
 				})
 
-				local fields = {}
-				for _, field in ipairs(res.customFields) do
-					if field["$type"] == "PeriodIssueCustomField" and type(field.value) ~= "userdata" then
-						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-PeriodIssueCustomField.html
-						table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.presentation))
-					elseif field["$type"] == "DateIssueCustomField" and type(field.value) ~= "userdata" then
-						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-DateIssueCustomField.html
-						table.insert(
-							fields,
-							("[ %s: %s ]"):format(field.name, os.date("%Y%m%dT%H:%M:%S", field.value / 1000))
-						)
-					elseif field["$type"] == "SimpleIssueCustomField" and type(field.value) ~= "userdata" then
-						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-DateIssueCustomField.html
-						table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value))
-					elseif field["$type"] == "StateIssueCustomField" and type(field.value) ~= "userdata" then
-						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-StateIssueCustomField.html
-						table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
-					-- elseif field["$type"] == "SingleBuildIssueCustomField" and type(field.value.name) ~= "userdata" then
-					-- 	-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-SingleBuildIssueCustomField.html
-					-- 	table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
-					elseif field["$type"] == "SingleUserIssueCustomField" and type(field.value) ~= "userdata" then
-						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-SingleUserIssueCustomField.html
-						table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
-					elseif field["$type"] == "SingleGroupIssueCustomField" and type(field.value) ~= "userdata" then
-						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-SingleGroupIssueCustomField.html
-						table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
-					elseif field["$type"] == "SingleVersionIssueCustomField" and type(field.value) ~= "userdata" then
-						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-SingleVersionIssueCustomField.html
-						table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
-					elseif field["$type"] == "SingleOwnedIssueCustomField" and type(field.value) ~= "userdata" then
-						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-SingleOwnedIssueCustomField.html
-						table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
-					elseif field["$type"] == "SingleEnumIssueCustomField" and type(field.value) ~= "userdata" then
-						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-EnumBundleElement.html
-						table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
-					elseif field["$type"] == "StateMachineIssueCustomField" and type(field.value) ~= "userdata" then
-						-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-StateMachineIssueCustomField.html
-						-- table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
-					end
-				end
+				local fields = utils.render_custom_fields(res)
 				if #fields > 0 then
 					vim.list_extend(details, { "", vim.fn.join(fields, " | ") })
 				end

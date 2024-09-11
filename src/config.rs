@@ -2,7 +2,7 @@ use mlua::prelude::*;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::macros::into_lua;
+use crate::macros::{from_lua, into_lua};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 pub struct Config {
@@ -11,24 +11,30 @@ pub struct Config {
 
     pub token: String,
 
-    pub issues: Option<ConfigIssues>,
+    pub issues: ConfigIssues,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ConfigIssues {
-    pub issues: Option<ConfigIssuesIssues>,
-    pub issue: Option<ConfigIssuesIssue>,
+    pub issues: ConfigIssuesIssues,
+    pub issue: ConfigIssuesIssue,
 }
+
+from_lua!(ConfigIssues);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ConfigIssuesIssues {
-    pub fields: Option<Vec<String>>,
+    pub fields: Vec<String>,
 }
+
+from_lua!(ConfigIssuesIssues);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ConfigIssuesIssue {
-    pub fields: Option<Vec<String>>,
+    pub fields: Vec<String>,
 }
+
+from_lua!(ConfigIssuesIssue);
 
 impl Config {}
 
