@@ -8,6 +8,7 @@ local lib = require("youtrack.lib")
 local log = require("youtrack.log")
 local n = require("nui-components")
 local setup = require("youtrack.setup")
+local utils = require("youtrack.utils")
 
 ---@class youtrack.GetIssuesOptions
 ---@field toggle? boolean
@@ -119,10 +120,7 @@ function M.get_issues(opts)
 
 						local query = renderer:get_component_by_id("query")
 						if query ~= nil then
-							query:set_current_value(query.query)
-							local lines = query:get_lines()
-							vim.api.nvim_buf_set_lines(query.bufnr, 0, #lines, false, lines)
-							query:redraw()
+							utils.set_component_value(query, node.query)
 						end
 					end,
 					prepare_node = function(node, line, component)
@@ -190,6 +188,7 @@ function M.get_issues(opts)
 					id = "command",
 					border_style = setup.config.ui.border,
 					border_label = "Command",
+					value = "",
 					autofocus = false,
 					autoresize = false,
 					size = 1,
@@ -200,6 +199,7 @@ function M.get_issues(opts)
 					id = "comment",
 					border_style = setup.config.ui.border,
 					border_label = "Comment",
+					value = "",
 					autofocus = false,
 					autoresize = false,
 					size = 1,
@@ -234,10 +234,7 @@ function M.get_issues(opts)
 											res
 										)
 
-										command:set_current_value("")
-										local lines = command:get_lines()
-										vim.api.nvim_buf_set_lines(command.bufnr, 0, #lines, false, lines)
-										command:redraw()
+										utils.set_component_value(command, "")
 
 										signal_issue.should_refresh = true
 									end
@@ -267,10 +264,7 @@ function M.get_issues(opts)
 											res
 										)
 
-										comment:set_current_value("")
-										local lines = comment:get_lines()
-										vim.api.nvim_buf_set_lines(comment.bufnr, 0, #lines, false, lines)
-										comment:redraw()
+										utils.set_component_value(comment, "")
 
 										signal_issue.should_refresh = true
 									end
