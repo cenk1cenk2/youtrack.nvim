@@ -142,6 +142,9 @@ function M.get_issues(opts)
 					placeholder = "Enter a youtrack query...",
 					value = signal_issues.query,
 					max_lines = 1,
+					on_mount = function(component)
+						utils.set_component_value(component)
+					end,
 					on_change = function(value, component)
 						signal_issues.query = value
 					end,
@@ -194,6 +197,9 @@ function M.get_issues(opts)
 					size = 1,
 					placeholder = "Enter a command to apply to issue...",
 					max_lines = 1,
+					on_mount = function(component)
+						utils.set_component_value(component)
+					end,
 				}),
 				n.text_input({
 					id = "comment",
@@ -204,6 +210,9 @@ function M.get_issues(opts)
 					autoresize = false,
 					size = 1,
 					placeholder = "Enter a comment to apply to issue...",
+					on_mount = function(component)
+						utils.set_component_value(component)
+					end,
 				}),
 				n.box(
 					{

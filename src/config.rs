@@ -10,6 +10,24 @@ pub struct Config {
     pub url: String,
 
     pub token: String,
+
+    pub issues: Option<ConfigIssues>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ConfigIssues {
+    pub issues: Option<ConfigIssuesIssues>,
+    pub issue: Option<ConfigIssuesIssue>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ConfigIssuesIssues {
+    pub fields: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ConfigIssuesIssue {
+    pub fields: Option<Vec<String>>,
 }
 
 impl Config {}

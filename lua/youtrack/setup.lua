@@ -19,11 +19,17 @@
 ---@field focus_down? string
 
 ---@class youtrack.ConfigIssues
----@field queries? youtrack.ConfigIssuesQuery[]
+---@field queries? table<string>
+---@field issues? youtrack.ConfigIssuesIssues
+---@field issue? youtrack.ConfigIssuesIssue
 
----@class youtrack.ConfigIssuesQuery
----@field name string
----@field query string
+---@class youtrack.ConfigIssuesIssues
+---@field fields? table<youtrack.ConfigFields>
+
+---@class youtrack.ConfigIssuesIssue
+---@field fields? table<youtrack.ConfigFields>
+
+---@alias youtrack.ConfigFields table<string>
 
 local M = {}
 
@@ -44,6 +50,12 @@ M.config = {
 	},
 	issues = {
 		queries = {},
+		issues = {
+			fields = {},
+		},
+		issue = {
+			field = {},
+		},
 	},
 }
 
