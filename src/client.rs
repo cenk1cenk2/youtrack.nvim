@@ -59,7 +59,7 @@ pub async fn get_issues(
         (
             "fields",
             JsonValue::String(
-                "id,idReadable,summary,description,project(id,name),customFields(name,value)"
+                "id,idReadable,summary,description,project(id,name),customFields(name,presentation,value($type,name,presentation))"
                     .into(),
             ),
         ),
