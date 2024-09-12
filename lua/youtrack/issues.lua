@@ -573,6 +573,7 @@ function M.get_issues(opts)
 			signal_issues.issue = nil
 			signal_issues.issue = issue
 			signal_issue.should_refresh = nil
+			log.info("Issue refreshed: %s", signal_issue.issue:get_value().idReadable)
 		end
 	end)
 
