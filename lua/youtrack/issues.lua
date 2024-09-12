@@ -171,7 +171,7 @@ function M.get_issues(opts)
 						if node.tags and #node.tags > 0 then
 							for _, tag in ipairs(node.tags) do
 								line:append(" ")
-								line:append(tag.name, "@tag")
+								line:append(("(%s)"):format(tag.name), "@tag")
 							end
 						end
 
@@ -488,7 +488,7 @@ function M.get_issues(opts)
 				if res.tags and #res.tags > 0 then
 					for _, tag in ipairs(res.tags) do
 						table.insert(text, n.text(" "))
-						table.insert(text, n.text(tag.name, "@tag"))
+						table.insert(text, n.text(("(%s)"):format(tag.name), "@tag"))
 					end
 				end
 
