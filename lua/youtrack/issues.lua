@@ -459,12 +459,21 @@ function M.get_issues(opts)
 
 			local issue_header = renderer:get_component_by_id("issue_header")
 			if issue_header ~= nil then
+				local text = {
+					n.text(("[%s]"):format(res.project.name), "@class"),
+					n.text(" "),
+					n.text(res.idReadable, "@constant"),
+				}
+
+				if res.tags and #res.tags > 0 then
+					for _, tag in ipairs(res.tags) do
+						table.insert(text, n.text(" "))
+						table.insert(text, n.text(tag.name, "@tag"))
+					end
+				end
+
 				signal_issue.header = {
-					n.line(
-						n.text(("[%s]"):format(res.project.name), "@class"),
-						n.text(" "),
-						n.text(res.idReadable, "@constant")
-					),
+					n.line(unpack(text)),
 				}
 			end
 
