@@ -19,6 +19,9 @@ function M.set_component_value(component, value)
 	return component
 end
 
+---@param field table
+---@param value table
+---@return table
 function M.process_field(field, value)
 	if type(field.value) == "table" and type(field.value.color) == "table" then
 		return vim.tbl_extend("force", value, {
@@ -76,7 +79,7 @@ function M.process_fields(res)
 			-- 	table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
 		elseif vim.endswith(field["$type"], "UserIssueCustomField") and type(field.value) ~= "userdata" then
 			local value
-			if type(field.value) == "table" then
+			if vim.islist(field.value) == "table" then
 				value = vim.fn.join(
 					vim.tbl_map(function(v)
 						return v.name
@@ -97,7 +100,7 @@ function M.process_fields(res)
 			)
 		elseif vim.endswith(field["$type"], "GroupIssueCustomField") and type(field.value) ~= "userdata" then
 			local value
-			if type(field.value) == "table" then
+			if vim.islist(field.value) == "table" then
 				value = vim.fn.join(
 					vim.tbl_map(function(v)
 						return v.name
@@ -118,7 +121,7 @@ function M.process_fields(res)
 			)
 		elseif vim.endswith(field["$type"], "VersionIssueCustomField") and type(field.value) ~= "userdata" then
 			local value
-			if type(field.value) == "table" then
+			if vim.islist(field.value) == "table" then
 				value = vim.fn.join(
 					vim.tbl_map(function(v)
 						return v.name
@@ -139,7 +142,7 @@ function M.process_fields(res)
 			)
 		elseif vim.endswith(field["$type"], "OwnedIssueCustomField") and type(field.value) ~= "userdata" then
 			local value
-			if type(field.value) == "table" then
+			if vim.islist(field.value) == "table" then
 				value = vim.fn.join(
 					vim.tbl_map(function(v)
 						return v.name
@@ -160,7 +163,7 @@ function M.process_fields(res)
 			)
 		elseif vim.endswith(field["$type"], "EnumIssueCustomField") and type(field.value) ~= "userdata" then
 			local value
-			if type(field.value) == "table" then
+			if vim.islist(field.value) == "table" then
 				value = vim.fn.join(
 					vim.tbl_map(function(v)
 						return v.name
