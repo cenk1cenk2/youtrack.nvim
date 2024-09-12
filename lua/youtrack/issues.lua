@@ -372,6 +372,16 @@ function M.get_issues(opts)
 					}),
 					n.gap(1),
 					n.button({
+						label = "Refresh <C-r>",
+						global_press_key = "<C-r>",
+						autofocus = false,
+						border_style = setup.config.ui.border,
+						on_press = function()
+							signal_issue.should_refresh = true
+						end,
+					}),
+					n.gap(1),
+					n.button({
 						label = "Open <C-o>",
 						global_press_key = "<C-o>",
 						autofocus = false,
