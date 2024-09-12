@@ -2,7 +2,9 @@
 ---@field url string
 ---@field token string
 ---@field ui? youtrack.ConfigUI
+---@field queries? string[]
 ---@field issues? youtrack.ConfigIssues
+---@field issue? youtrack.ConfigIssue
 
 ---@class youtrack.ConfigUI
 ---@field border? 'double' | 'none' | 'rounded' | 'shadow' | 'single' | 'solid'
@@ -19,14 +21,9 @@
 ---@field focus_down? string
 
 ---@class youtrack.ConfigIssues
----@field queries? table<string>
----@field issues? youtrack.ConfigIssuesIssues
----@field issue? youtrack.ConfigIssuesIssue
-
----@class youtrack.ConfigIssuesIssues
 ---@field fields? table<youtrack.ConfigFields>
 
----@class youtrack.ConfigIssuesIssue
+---@class youtrack.ConfigIssue
 ---@field fields? table<youtrack.ConfigFields>
 
 ---@alias youtrack.ConfigFields table<string>
@@ -48,14 +45,20 @@ M.config = {
 			focus_down = "<Down>",
 		},
 	},
+	queries = {},
 	issues = {
-		queries = {},
-		issues = {
-			fields = {},
+		size = {
+			height = 24,
+			width = 120,
 		},
-		issue = {
-			fields = {},
+		fields = {},
+	},
+	issue = {
+		size = {
+			height = 64,
+			width = 180,
 		},
+		fields = {},
 	},
 }
 

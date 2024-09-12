@@ -11,16 +11,9 @@ pub struct Config {
 
     pub token: String,
 
-    pub issues: ConfigIssues,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct ConfigIssues {
     pub issues: ConfigIssuesIssues,
     pub issue: ConfigIssuesIssue,
 }
-
-from_lua!(ConfigIssues);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ConfigIssuesIssues {

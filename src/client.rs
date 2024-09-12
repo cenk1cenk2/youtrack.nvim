@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::Error;
 use crate::lua::NoData;
 use crate::macros::{self, from_lua, into_lua};
-use crate::{config, Module};
+use crate::Module;
 use serde_json::{json, Value as JsonValue};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -24,6 +24,97 @@ impl Default for Pagination {
 }
 
 macros::from_lua!(Pagination);
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GetSavedQueries {
+    pub page: Option<Pagination>,
+}
+
+impl Default for GetSavedQueries {
+    fn default() -> Self {
+        GetSavedQueries {
+            page: Some(Pagination::default()),
+        }
+    }
+}
+
+into_lua!(GetSavedQueries);
+from_lua!(GetSavedQueries);
+
+pub type GetSavedQueriesArgs<'lua> = (Option<GetSavedQueries>, LuaFunction<'lua>);
+
+#[allow(unused_variables)]
+pub async fn get_saved_queries(
+    lua: &Lua,
+    m: AppDataRef<'static, Module>,
+    (options, callback): GetSavedQueriesArgs<'_>,
+) -> Result<NoData, Error> {
+    let mut url = m.api_url.clone();
+
+    url.path_segments_mut().unwrap().push("savedQueries");
+
+    let mut query: Vec<(&str, JsonValue)> = vec![
+        ("fields", JsonValue::String("name,query".into())),
+        (
+            "$top",
+            JsonValue::Number(
+                options
+                    .clone()
+                    .unwrap_or_default()
+                    .page
+                    .unwrap_or_default()
+                    .take
+                    .unwrap_or_default()
+                    .into(),
+            ),
+        ),
+        (
+            "$skip",
+            JsonValue::Number(
+                options
+                    .clone()
+                    .unwrap_or_default()
+                    .page
+                    .unwrap_or_default()
+                    .skip
+                    .unwrap_or_default()
+                    .into(),
+            ),
+        ),
+    ];
+
+    m.config.clone().issue.fields.iter().for_each(|field| {
+        query.push(("customFields", JsonValue::String(field.clone())));
+    });
+
+    let req = m.client.get(url).query(&query);
+
+    log::debug!("Youtrack issue add comment request: {:?}", req);
+
+    let res = req.send().await?;
+
+    match res.status() {
+        reqwest::StatusCode::OK => {
+            let json: JsonValue = res.json().await?;
+            log::debug!(
+                "Youtrack saved queries fetched: {:?} -> {:#?}",
+                options,
+                json
+            );
+            callback.call((LuaNil, lua.to_value(&json)))?;
+        }
+        _ => {
+            log::debug!(
+                "Youtrack saved queries can not be fetched: {:?} -> {:#?}",
+                options,
+                res.text().await?
+            );
+            callback.call(("Youtrack saved queries can not be fetched.", LuaNil))?;
+        }
+    }
+
+    Ok(NoData)
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetIssues {
@@ -59,7 +150,7 @@ pub async fn get_issues(
         (
             "fields",
             JsonValue::String(
-                "id,idReadable,summary,description,project(id,name),customFields(name,presentation,value($type,name,presentation))"
+                "id,idReadable,summary,description,project(id,name),customFields(name,presentation,value(name,presentation,color(background,foreground,id)))"
                     .into(),
             ),
         ),
@@ -101,15 +192,9 @@ pub async fn get_issues(
         ),
     ];
 
-    m.config
-        .clone()
-        .issues
-        .issues
-        .fields
-        .iter()
-        .for_each(|field| {
-            query.push(("customFields", JsonValue::String(field.clone())));
-        });
+    m.config.clone().issues.fields.iter().for_each(|field| {
+        query.push(("customFields", JsonValue::String(field.clone())));
+    });
 
     let req = m.client.get(url).query(&query);
 
@@ -166,7 +251,7 @@ pub async fn get_issue(
     let query: Vec<(&str, JsonValue)> = vec![(
         "fields",
         JsonValue::String(
-            "id,idReadable,summary,description,project(id,name),customFields(name,presentation,value($type,name,presentation)),comments(author(fullName),text,created)"
+            "id,idReadable,summary,description,project(id,name),customFields(name,presentation,value(name,presentation,color(background,foreground,id))),comments(author(fullName),text,created)"
                 .into(),
         ),
     )];
@@ -191,6 +276,67 @@ pub async fn get_issue(
             );
             callback.call((
                 format!("Youtrack issue details can not be fetched: {}", options.id),
+                LuaNil,
+            ))?;
+        }
+    }
+
+    Ok(NoData)
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct UpdateIssue {
+    pub id: String,
+    pub description: Option<String>,
+    pub summary: Option<String>,
+}
+
+into_lua!(UpdateIssue);
+from_lua!(UpdateIssue);
+
+pub type UpdateIssueArgs<'lua> = (UpdateIssue, LuaFunction<'lua>);
+
+#[allow(unused_variables)]
+pub async fn update_issue(
+    lua: &Lua,
+    m: AppDataRef<'static, Module>,
+    (options, callback): UpdateIssueArgs<'_>,
+) -> Result<NoData, Error> {
+    let mut url = m.api_url.clone();
+
+    url.path_segments_mut()
+        .unwrap()
+        .push("issues")
+        .push(options.clone().id.as_str());
+
+    let query: Vec<(&str, JsonValue)> = vec![(
+        "fields",
+        JsonValue::String("id,idReadable,summary,description".into()),
+    )];
+
+    let req = m.client.post(url).query(&query).json(&json!({
+        "summary": options.summary,
+        "description": options.description
+    }));
+
+    log::debug!("Youtrack issue update request: {:?}", req);
+
+    let res = req.send().await?;
+
+    match res.status() {
+        reqwest::StatusCode::OK => {
+            let json: JsonValue = res.json().await?;
+            log::debug!("Youtrack issue updated: {:?} -> {:#?}", options, json);
+            callback.call((LuaNil, lua.to_value(&json)))?;
+        }
+        _ => {
+            log::debug!(
+                "Youtrack issue can not be updated: {:?} -> {:#?}",
+                options,
+                res.text().await?
+            );
+            callback.call((
+                format!("Youtrack issue issue can not be updated: {}", options.id),
                 LuaNil,
             ))?;
         }
@@ -308,103 +454,6 @@ pub async fn add_issue_comment(
                 format!("Youtrack issue comment can not be added: {}", options.id),
                 LuaNil,
             ))?;
-        }
-    }
-
-    Ok(NoData)
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct GetSavedQueries {
-    pub page: Option<Pagination>,
-}
-
-impl Default for GetSavedQueries {
-    fn default() -> Self {
-        GetSavedQueries {
-            page: Some(Pagination::default()),
-        }
-    }
-}
-
-into_lua!(GetSavedQueries);
-from_lua!(GetSavedQueries);
-
-pub type GetSavedQueriesArgs<'lua> = (Option<GetSavedQueries>, LuaFunction<'lua>);
-
-#[allow(unused_variables)]
-pub async fn get_saved_queries(
-    lua: &Lua,
-    m: AppDataRef<'static, Module>,
-    (options, callback): GetSavedQueriesArgs<'_>,
-) -> Result<NoData, Error> {
-    let mut url = m.api_url.clone();
-
-    url.path_segments_mut().unwrap().push("savedQueries");
-
-    let mut query: Vec<(&str, JsonValue)> = vec![
-        ("fields", JsonValue::String("name,query".into())),
-        (
-            "$top",
-            JsonValue::Number(
-                options
-                    .clone()
-                    .unwrap_or_default()
-                    .page
-                    .unwrap_or_default()
-                    .take
-                    .unwrap_or_default()
-                    .into(),
-            ),
-        ),
-        (
-            "$skip",
-            JsonValue::Number(
-                options
-                    .clone()
-                    .unwrap_or_default()
-                    .page
-                    .unwrap_or_default()
-                    .skip
-                    .unwrap_or_default()
-                    .into(),
-            ),
-        ),
-    ];
-
-    m.config
-        .clone()
-        .issues
-        .issue
-        .fields
-        .iter()
-        .for_each(|field| {
-            query.push(("customFields", JsonValue::String(field.clone())));
-        });
-
-    let req = m.client.get(url).query(&query);
-
-    log::debug!("Youtrack issue add comment request: {:?}", req);
-
-    let res = req.send().await?;
-
-    match res.status() {
-        reqwest::StatusCode::OK => {
-            let json: JsonValue = res.json().await?;
-            log::debug!(
-                "Youtrack saved queries fetched: {:?} -> {:#?}",
-                options,
-                json
-            );
-            callback.call((LuaNil, lua.to_value(&json)))?;
-        }
-        _ => {
-            log::debug!(
-                "Youtrack saved queries can not be fetched: {:?} -> {:#?}",
-                options,
-                res.text().await?
-            );
-            callback.call(("Youtrack saved queries can not be fetched.", LuaNil))?;
         }
     }
 

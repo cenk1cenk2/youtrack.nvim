@@ -38,6 +38,8 @@ function M.get_issues(opts)
 		M._.state.signal_issue = n.create_signal({
 			issue = nil,
 			should_refresh = nil,
+			header = {},
+			fields = {},
 		})
 	end
 	local signal = M._.state.signal
@@ -115,7 +117,7 @@ function M.get_issues(opts)
 					border_label = "Select query",
 					border_style = setup.config.ui.border,
 					data = signal_queries.queries,
-					on_select = function(node, component)
+					on_select = function(node, _)
 						signal_issues.query = node.query
 
 						local query = renderer:get_component_by_id("query")
@@ -123,7 +125,7 @@ function M.get_issues(opts)
 							utils.set_component_value(query, node.query)
 						end
 					end,
-					prepare_node = function(node, line, component)
+					prepare_node = function(node, line, _)
 						line:append(node.name, "@class")
 						line:append(" ")
 						line:append(node.query, "@comment")
@@ -145,7 +147,7 @@ function M.get_issues(opts)
 					on_mount = function(component)
 						utils.set_component_value(component)
 					end,
-					on_change = function(value, component)
+					on_change = function(value, _)
 						signal_issues.query = value
 					end,
 				}),
@@ -159,14 +161,19 @@ function M.get_issues(opts)
 						signal_issues.issue = node
 						component:get_tree():render()
 					end,
-					prepare_node = function(node, line, component)
+					prepare_node = function(node, line, _)
 						line:append(("[%s]"):format(node.project.name), "@class")
-						line:append((" %s"):format(node.idReadable), "@constant")
-						line:append((" %s"):format(node.summary, "@string"))
+						line:append(" ")
+						line:append(node.idReadable, "@constant")
+						line:append(" ")
+						line:append(node.summary, "@string")
 
-						local fields = utils.render_custom_fields(node)
+						local fields = utils.process_fields(node)
 						if #fields > 0 then
-							line:append((" %s"):format(vim.fn.join(fields, " | ")), "@comment")
+							for _, field in ipairs(fields) do
+								line:append(" ")
+								line:append(("[%s: %s]"):format(field.key, tostring(field.value)), "@comment")
+							end
 						end
 
 						return line
@@ -182,15 +189,47 @@ function M.get_issues(opts)
 				{
 					flex = 1,
 				},
+				n.paragraph({
+					id = "issue_header",
+					border_style = setup.config.ui.border,
+					border_label = "Issue",
+					lines = signal_issue.header,
+				}),
 				n.buffer({
 					border_style = setup.config.ui.border,
-					flex = 1,
-					id = "issue",
+					size = 1,
+					id = "issue_summary",
+					buf = vim.api.nvim_create_buf(false, true),
+					autoscroll = false,
+					autofocus = false,
+					filetype = "markdown",
+					border_label = "Description",
+				}),
+				n.paragraph({
+					id = "issue_fields",
+					border_style = setup.config.ui.border,
+					border_label = "Fields",
+					lines = signal_issue.fields,
+				}),
+				n.buffer({
+					border_style = setup.config.ui.border,
+					flex = 2,
+					id = "issue_description",
 					buf = vim.api.nvim_create_buf(false, true),
 					autoscroll = false,
 					autofocus = true,
 					filetype = "markdown",
 					-- border_label = ("Issue %s"):format(signal.selected_issue:get_value().idReadable),
+				}),
+				n.buffer({
+					flex = 1,
+					border_style = setup.config.ui.border,
+					id = "issue_comments",
+					buf = vim.api.nvim_create_buf(false, true),
+					autoscroll = false,
+					autofocus = false,
+					filetype = "markdown",
+					border_label = "Comments",
 				}),
 				n.text_input({
 					id = "command",
@@ -226,10 +265,39 @@ function M.get_issues(opts)
 						border_style = setup.config.ui.border,
 					},
 					n.button({
-						label = "Send",
+						label = "Save <C-s>",
 						border_style = setup.config.ui.border,
 						autofocus = false,
+						global_press_key = "<C-s>",
 						on_press = function()
+							local description = renderer:get_component_by_id("issue_description")
+							local summary = renderer:get_component_by_id("issue_summary")
+							if description ~= nil and summary ~= nil then
+								local summary_content = utils.get_component_buffer_content(summary)
+								local description_content = utils.get_component_buffer_content(description)
+
+								lib.update_issue({
+									id = signal_issue.issue:get_value().id,
+									summary = vim.fn.join(summary_content, "\n"),
+									description = vim.fn.join(description_content, "\n"),
+								}, function(err, _)
+									if err then
+										log.print.error(err)
+
+										return
+									end
+
+									log.info("Issue updated: %s", signal_issue.issue:get_value().idReadable)
+
+									signal_issue.should_refresh = true
+								end)
+							else
+								log.debug(
+									"No need to update for the issue: %s",
+									signal_issue.issue:get_value().idReadable
+								)
+							end
+
 							local command = renderer:get_component_by_id("command")
 							if command and command:get_current_value() ~= nil and command:get_current_value() ~= "" then
 								lib.apply_issue_command(
@@ -293,7 +361,8 @@ function M.get_issues(opts)
 					}),
 					n.gap(1),
 					n.button({
-						label = "View",
+						label = "Open <C-o>",
+						global_press_key = "<C-o>",
 						autofocus = false,
 						border_style = setup.config.ui.border,
 						on_press = function()
@@ -304,7 +373,8 @@ function M.get_issues(opts)
 					}),
 					n.gap(1),
 					n.button({
-						label = "Close",
+						label = "Close <C-x>",
+						global_press_key = "<C-x>",
 						autofocus = false,
 						border_style = setup.config.ui.border,
 						on_press = function()
@@ -319,12 +389,7 @@ function M.get_issues(opts)
 	)
 
 	signal.active:observe(function(active)
-		if active == "issues" then
-			renderer:set_size({ height = 24 })
-		elseif active == "issue" then
-			renderer:set_size({ height = 48 })
-		end
-		-- renderer:redraw()
+		renderer:set_size(setup.config[active].size)
 	end)
 
 	signal.error:skip(1):observe(function(err)
@@ -332,11 +397,9 @@ function M.get_issues(opts)
 			return
 		end
 
-		local component = renderer:get_component_by_id("error")
-		if component ~= nil then
-			component:modify_buffer_content(function()
-				vim.api.nvim_buf_set_lines(component.bufnr, 0, -1, false, vim.split(err, "\n"))
-			end)
+		local error = renderer:get_component_by_id("error")
+		if error ~= nil then
+			utils.set_component_buffer_content(error, err)
 		end
 
 		signal.active = "error"
@@ -393,39 +456,69 @@ function M.get_issues(opts)
 
 			signal_issue.issue = res
 
-			local component = renderer:get_component_by_id("issue")
-			if component ~= nil then
-				local details = {}
+			local issue_header = renderer:get_component_by_id("issue_header")
+			if issue_header ~= nil then
+				signal_issue.header = {
+					n.line(
+						n.text(("[%s]"):format(res.project.name), "@class"),
+						n.text(" "),
+						n.text(res.idReadable, "@constant")
+					),
+				}
+			end
 
-				vim.list_extend(details, {
-					("# [%s] %s - %s"):format(res.project.name, res.idReadable, res.summary),
-				})
+			local issue_summary = renderer:get_component_by_id("issue_summary")
+			if issue_summary ~= nil then
+				utils.set_component_buffer_content(issue_summary, res.summary, true)
+			end
 
-				local fields = utils.render_custom_fields(res)
-				if #fields > 0 then
-					vim.list_extend(details, { "", vim.fn.join(fields, " | ") })
+			local issue_fields = renderer:get_component_by_id("issue_fields")
+
+			if issue_fields ~= nil then
+				local fields = utils.process_fields(res)
+
+				local text = {}
+
+				for i, field in ipairs(fields) do
+					if i > 1 then
+						table.insert(text, n.text(" "))
+					end
+					table.insert(text, n.text(("[ %s: %s ]"):format(field.key, tostring(field.value))))
 				end
 
+				signal_issue.fields = { n.line(unpack(text)) }
+			end
+
+			local issue_description = renderer:get_component_by_id("issue_description")
+			if issue_description ~= nil then
+				local description = {}
+
 				if type(res.description) == "string" then
-					local description = vim.split(res.description or "", "\n")
-					if #description > 0 then
-						vim.list_extend(details, { "", "## Description", "" })
-						vim.list_extend(details, description)
+					local d = vim.split(res.description or "", "\n")
+					if #d > 0 then
+						vim.list_extend(description, d)
 					end
 				end
 
-				if type(res.comments) == "table" and #res.comments > 0 then
-					vim.list_extend(details, { "", "## Comments" })
+				utils.set_component_buffer_content(issue_description, description, true)
+			end
 
+			local issue_comments = renderer:get_component_by_id("issue_comments")
+			if issue_comments ~= nil then
+				local comments = {}
+				if type(res.comments) == "table" and #res.comments > 0 then
 					table.sort(res.comments, function(a, b)
 						return a.created > b.created
 					end)
 
-					for _, comment in ipairs(res.comments) do
+					for i, comment in ipairs(res.comments) do
+						if i > 1 then
+							table.insert(comments, "")
+						end
+
 						vim.list_extend(
-							details,
+							comments,
 							vim.list_extend({
-								"",
 								("### %s - %s"):format(
 									comment.author.fullName,
 									os.date("%Y%m%dT%H:%M:%S", comment.created / 1000)
@@ -436,9 +529,7 @@ function M.get_issues(opts)
 					end
 				end
 
-				component:modify_buffer_content(function()
-					vim.api.nvim_buf_set_lines(component.bufnr, 0, -1, false, details)
-				end)
+				utils.set_component_buffer_content(issue_comments, comments)
 			end
 
 			signal.active = "issue"
@@ -452,7 +543,6 @@ function M.get_issues(opts)
 			signal_issues.issue = nil
 			signal_issues.issue = issue
 			signal_issue.should_refresh = nil
-			renderer:redraw()
 		end
 	end)
 
@@ -470,7 +560,7 @@ function M.get_issues(opts)
 			)
 		end
 
-		vim.list_extend(queries, setup.config.issues.queries)
+		vim.list_extend(queries, setup.config.queries)
 
 		signal_queries.queries = vim.tbl_map(function(query)
 			return n.node(query)
