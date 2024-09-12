@@ -19,7 +19,7 @@ function M.set_component_value(component, value)
 	return component
 end
 
-local function field_with_color(field, value)
+function M.process_field(field, value)
 	if type(field.value) == "table" and type(field.value.color) == "table" then
 		return vim.tbl_extend("force", value, {
 			hl = {
@@ -39,7 +39,7 @@ function M.process_fields(res)
 			-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-PeriodIssueCustomField.html
 			table.insert(
 				fields,
-				field_with_color(field, {
+				M.process_field(field, {
 					key = field.name,
 					value = field.value.presentation,
 				})
@@ -48,16 +48,16 @@ function M.process_fields(res)
 			-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-DateIssueCustomField.html
 			table.insert(
 				fields,
-				field_with_color(field, {
+				M.process_field(field, {
 					key = field.name,
-					value = os.date("%Y%m%dT%H:%M:%S", field.value / 1000),
+					value = os.date("%Y%m%dT", field.value / 1000),
 				})
 			)
 		elseif field["$type"] == "SimpleIssueCustomField" and type(field.value) ~= "userdata" then
 			-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-DateIssueCustomField.html
 			table.insert(
 				fields,
-				field_with_color(field, {
+				M.process_field(field, {
 					key = field.name,
 					value = field.value,
 				})
@@ -66,7 +66,7 @@ function M.process_fields(res)
 			-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-StateIssueCustomField.html
 			table.insert(
 				fields,
-				field_with_color(field, {
+				M.process_field(field, {
 					key = field.name,
 					value = field.value.name,
 				})
@@ -74,49 +74,109 @@ function M.process_fields(res)
 			-- elseif field["$type"] == "SingleBuildIssueCustomField" and type(field.value.name) ~= "userdata" then
 			-- 	-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-SingleBuildIssueCustomField.html
 			-- 	table.insert(fields, ("[ %s: %s ]"):format(field.name, field.value.name))
-		elseif field["$type"] == "SingleUserIssueCustomField" and type(field.value) ~= "userdata" then
+		elseif vim.endswith(field["$type"], "UserIssueCustomField") and type(field.value) ~= "userdata" then
+			local value
+			if type(field.value) == "table" then
+				value = vim.fn.join(
+					vim.tbl_map(function(v)
+						return v.name
+					end, field.value),
+					", "
+				)
+			else
+				value = field.value.name
+			end
+
 			-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-SingleUserIssueCustomField.html
 			table.insert(
 				fields,
-				field_with_color(field, {
+				M.process_field(field, {
 					key = field.name,
-					value = field.value.name,
+					value = value,
 				})
 			)
-		elseif field["$type"] == "SingleGroupIssueCustomField" and type(field.value) ~= "userdata" then
+		elseif vim.endswith(field["$type"], "GroupIssueCustomField") and type(field.value) ~= "userdata" then
+			local value
+			if type(field.value) == "table" then
+				value = vim.fn.join(
+					vim.tbl_map(function(v)
+						return v.name
+					end, field.value),
+					", "
+				)
+			else
+				value = field.value.name
+			end
+
 			-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-SingleGroupIssueCustomField.html
 			table.insert(
 				fields,
-				field_with_color(field, {
+				M.process_field(field, {
 					key = field.name,
-					value = field.value.name,
+					value = value,
 				})
 			)
-		elseif field["$type"] == "SingleVersionIssueCustomField" and type(field.value) ~= "userdata" then
+		elseif vim.endswith(field["$type"], "VersionIssueCustomField") and type(field.value) ~= "userdata" then
+			local value
+			if type(field.value) == "table" then
+				value = vim.fn.join(
+					vim.tbl_map(function(v)
+						return v.name
+					end, field.value),
+					", "
+				)
+			else
+				value = field.value.name
+			end
+
 			-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-SingleVersionIssueCustomField.html
 			table.insert(
 				fields,
-				field_with_color(field, {
+				M.process_field(field, {
 					key = field.name,
-					value = field.value.name,
+					value = value,
 				})
 			)
-		elseif field["$type"] == "SingleOwnedIssueCustomField" and type(field.value) ~= "userdata" then
+		elseif vim.endswith(field["$type"], "OwnedIssueCustomField") and type(field.value) ~= "userdata" then
+			local value
+			if type(field.value) == "table" then
+				value = vim.fn.join(
+					vim.tbl_map(function(v)
+						return v.name
+					end, field.value),
+					", "
+				)
+			else
+				value = field.value.name
+			end
+
 			-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-SingleOwnedIssueCustomField.html
 			table.insert(
 				fields,
-				field_with_color(field, {
+				M.process_field(field, {
 					key = field.name,
-					value = field.value.name,
+					value = value,
 				})
 			)
-		elseif field["$type"] == "SingleEnumIssueCustomField" and type(field.value) ~= "userdata" then
+		elseif vim.endswith(field["$type"], "EnumIssueCustomField") and type(field.value) ~= "userdata" then
+			local value
+			if type(field.value) == "table" then
+				value = vim.fn.join(
+					vim.tbl_map(function(v)
+						return v.name
+					end, field.value),
+					", "
+				)
+			else
+				value = field.value.name
+			end
+
 			-- https://www.jetbrains.com/help/youtrack/devportal/api-entity-EnumBundleElement.html
 			table.insert(
 				fields,
-				field_with_color(field, {
+				M.process_field(field, {
 					key = field.name,
-					value = field.value.name,
+					value = value,
 				})
 			)
 		elseif field["$type"] == "StateMachineIssueCustomField" and type(field.value) ~= "userdata" then

@@ -500,7 +500,7 @@ function M.get_issues(opts)
 					if i > 1 then
 						table.insert(text, n.text(" "))
 					end
-					table.insert(text, n.text(("[ %s: %s ]"):format(field.key, tostring(field.value))))
+					table.insert(text, n.text(("[%s: %s]"):format(field.key, tostring(field.value))))
 				end
 
 				signal_issue.fields = { n.line(unpack(text)) }
