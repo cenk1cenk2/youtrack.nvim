@@ -280,21 +280,34 @@ function M.get_issues(opts)
 								local summary_content = utils.get_component_buffer_content(summary)
 								local description_content = utils.get_component_buffer_content(description)
 
-								lib.update_issue({
-									id = signal_issue.issue:get_value().id,
-									summary = vim.fn.join(summary_content, "\n"),
-									description = vim.fn.join(description_content, "\n"),
-								}, function(err, _)
-									if err then
-										log.print.error(err)
+								local s = vim.fn.join(summary_content, "\n")
+								local d = vim.fn.join(description_content, "\n")
 
-										return
-									end
+								if
+									s ~= signal_issue.issue:get_value().summary
+									or d ~= signal_issue.issue:get_value().description
+								then
+									lib.update_issue({
+										id = signal_issue.issue:get_value().id,
+										summary = s,
+										description = d,
+									}, function(err, _)
+										if err then
+											log.print.error(err)
 
-									log.info("Issue updated: %s", signal_issue.issue:get_value().idReadable)
+											return
+										end
 
-									signal_issue.should_refresh = true
-								end)
+										log.info("Issue updated: %s", signal_issue.issue:get_value().idReadable)
+
+										signal_issue.should_refresh = true
+									end)
+								else
+									log.debug(
+										"Nothing changed for the issue: %s",
+										signal_issue.issue:get_value().idReadable
+									)
+								end
 							else
 								log.debug(
 									"No need to update for the issue: %s",
