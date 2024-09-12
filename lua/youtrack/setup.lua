@@ -1,15 +1,18 @@
 ---@class youtrack.Config
 ---@field url string
 ---@field token string
----@field ui? youtrack.ConfigUI
+---@field ui? youtrack.ConfigUi
 ---@field queries? string[]
 ---@field issues? youtrack.ConfigIssues
 ---@field issue? youtrack.ConfigIssue
 
----@class youtrack.ConfigUI
+---@class youtrack.ConfigUi: youtrack.ConfigUiSize
 ---@field border? 'double' | 'none' | 'rounded' | 'shadow' | 'single' | 'solid'
----@field width? number
 ---@field keymap? youtrack.ConfigUIKeymap
+
+---@class youtrack.ConfigUiSize
+---@field width? number
+---@field height? number
 
 ---@class youtrack.ConfigUIKeymap
 ---@field close? string
@@ -22,9 +25,11 @@
 
 ---@class youtrack.ConfigIssues
 ---@field fields? table<youtrack.ConfigFields>
+---@field size? youtrack.ConfigUiSize
 
 ---@class youtrack.ConfigIssue
 ---@field fields? table<youtrack.ConfigFields>
+---@field size? youtrack.ConfigUiSize
 
 ---@alias youtrack.ConfigFields table<string>
 
@@ -34,7 +39,7 @@ local M = {}
 M.config = {
 	ui = {
 		border = "single",
-		width = 120,
+		width = 180,
 		keymap = {
 			close = "<Esc>",
 			focus_next = "<Tab>",
@@ -49,7 +54,7 @@ M.config = {
 	issues = {
 		size = {
 			height = 24,
-			width = 120,
+			width = 180,
 		},
 		fields = {},
 	},
