@@ -169,7 +169,6 @@ function M.get_issues(opts)
 			n.rows(
 				{ flex = 1 },
 				n.columns(
-					{ flex = 1 },
 					n.paragraph({
 						id = "issue_header",
 						border_style = setup.config.ui.border,
