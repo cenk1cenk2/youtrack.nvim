@@ -253,18 +253,14 @@ function M.get_issues(opts)
 						utils.set_component_value(component)
 					end,
 				}),
-				n.text_input({
+				n.buffer({
 					id = "comment",
+					buf = vim.api.nvim_create_buf(false, true),
+					autoscroll = true,
 					border_style = setup.config.ui.border,
 					border_label = "Comment",
-					value = "",
-					autofocus = false,
-					autoresize = false,
-					size = 1,
-					placeholder = "Enter a comment to apply to issue...",
-					on_mount = function(component)
-						utils.set_component_value(component)
-					end,
+					size = 4,
+					filetype = "markdown",
 				}),
 				n.box(
 					{
@@ -318,10 +314,9 @@ function M.get_issues(opts)
 										end
 
 										log.info(
-											"Command applied to issue: %s -> %s with %s",
+											"Command applied to issue: %s -> %s",
 											signal_issue.issue:get_value().idReadable,
-											command:get_current_value(),
-											res
+											command:get_current_value()
 										)
 
 										utils.set_component_value(command, "")
@@ -337,28 +332,23 @@ function M.get_issues(opts)
 							end
 
 							local comment = renderer:get_component_by_id("comment")
-							if comment and comment:get_current_value() ~= nil and comment:get_current_value() ~= "" then
-								lib.add_issue_comment(
-									{ id = signal_issue.issue:get_value().id, comment = comment:get_current_value() },
-									function(err, res)
-										if err then
-											log.print.error(err)
+							if comment ~= nil and utils.get_component_buffer_content(comment)[1] ~= "" then
+								lib.add_issue_comment({
+									id = signal_issue.issue:get_value().id,
+									comment = vim.fn.join(utils.get_component_buffer_content(comment), "\n"),
+								}, function(err, _)
+									if err then
+										log.print.error(err)
 
-											return
-										end
-
-										log.info(
-											"Comment applied to issue: %s -> %s with %s",
-											signal_issue.issue:get_value().idReadable,
-											comment:get_current_value(),
-											res
-										)
-
-										utils.set_component_value(comment, "")
-
-										signal_issue.should_refresh = true
+										return
 									end
-								)
+
+									log.info("Comment applied to issue: %s", signal_issue.issue:get_value().idReadable)
+
+									utils.set_component_buffer_content(comment, "")
+
+									signal_issue.should_refresh = true
+								end)
 							else
 								log.debug(
 									"No comment to be applied for the issue: %s",
