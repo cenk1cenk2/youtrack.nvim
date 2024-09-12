@@ -559,6 +559,8 @@ function M.get_issues(opts)
 	lib.get_saved_queries(nil, function(err, res)
 		local queries = { { name = "Create a new query...", query = "" } }
 
+		vim.list_extend(queries, setup.config.queries)
+
 		if err then
 			log.print.error(err)
 		else
@@ -569,8 +571,6 @@ function M.get_issues(opts)
 				end, res or {})
 			)
 		end
-
-		vim.list_extend(queries, setup.config.queries)
 
 		signal_queries.queries = vim.tbl_map(function(query)
 			return n.node(query)
