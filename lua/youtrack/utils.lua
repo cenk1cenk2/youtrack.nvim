@@ -50,7 +50,7 @@ function M.process_fields(res)
 				fields,
 				M.process_field(field, {
 					key = field.name,
-					value = os.date("%Y%m%dT", field.value / 1000),
+					value = os.date("%Y%m%d", field.value / 1000),
 				})
 			)
 		elseif field["$type"] == "SimpleIssueCustomField" and type(field.value) ~= "userdata" then
