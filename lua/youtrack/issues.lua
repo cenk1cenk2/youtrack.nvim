@@ -173,6 +173,7 @@ function M.get_issues(opts)
 						id = "issue_header",
 						border_style = setup.config.ui.border,
 						flex = 1,
+						size = 1,
 						border_label = "Issue",
 						lines = signal_issue.header,
 					}),
