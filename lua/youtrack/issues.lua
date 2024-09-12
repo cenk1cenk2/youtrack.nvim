@@ -150,11 +150,11 @@ function M.get_issues(opts)
 
 						for _, field in ipairs(node.fields) do
 							line:append(" ")
-							line:append("[", "@comment")
+							line:append("[", "@constant")
 							line:append(field.name, "@constant")
 							line:append(": ", "@comment")
 							line:append(field.text)
-							line:append("]", "@comment")
+							line:append("]", "@constant")
 						end
 
 						return line
@@ -509,11 +509,11 @@ function M.get_issues(opts)
 
 				for _, field in ipairs(res.fields) do
 					table.insert(lines, {
-						n.text("[", "@comment"),
+						n.text("[", "@constant"),
 						n.text(field.name, "@constant"),
-						n.text(": "),
+						n.text(": ", "@comment"),
 						n.text(field.text),
-						n.text("]", "@comment"),
+						n.text("]", "@constant"),
 					})
 				end
 
