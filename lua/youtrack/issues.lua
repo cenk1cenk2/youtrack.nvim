@@ -113,7 +113,7 @@ function M.get_issues(opts)
 				{ flex = 1 },
 				n.tree({
 					autofocus = true,
-					size = 4,
+					flex = 1,
 					border_label = "Select query",
 					border_style = setup.config.ui.border,
 					data = signal_queries.queries,
@@ -152,7 +152,7 @@ function M.get_issues(opts)
 					end,
 				}),
 				n.tree({
-					flex = 1,
+					flex = 2,
 					border_label = "Select issue",
 					border_style = setup.config.ui.border,
 					-- hidden = signal_issues.issues:negate(),
