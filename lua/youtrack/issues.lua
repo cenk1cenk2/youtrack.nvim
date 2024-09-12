@@ -168,6 +168,13 @@ function M.get_issues(opts)
 						line:append(" ")
 						line:append(node.summary, "@string")
 
+						if node.tags and #node.tags > 0 then
+							for _, tag in ipairs(node.tags) do
+								line:append(" ")
+								line:append(tag.name, "@tag")
+							end
+						end
+
 						local fields = utils.process_fields(node)
 						if #fields > 0 then
 							for _, field in ipairs(fields) do
