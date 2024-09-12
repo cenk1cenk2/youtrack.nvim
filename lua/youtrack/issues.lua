@@ -179,7 +179,14 @@ function M.get_issues(opts)
 						if #fields > 0 then
 							for _, field in ipairs(fields) do
 								line:append(" ")
-								line:append(("[%s: %s]"):format(field.key, tostring(field.value)), "@comment")
+								if vim.islist(field.value) then
+									line:append(
+										("[%s: %s]"):format(field.key, table.concat(field.value, ", ")),
+										"@comment"
+									)
+								else
+									line:append(("[%s: %s]"):format(field.key, tostring(field.value)), "@comment")
+								end
 							end
 						end
 
@@ -513,7 +520,14 @@ function M.get_issues(opts)
 					if i > 1 then
 						table.insert(text, n.text(" "))
 					end
-					table.insert(text, n.text(("[%s: %s]"):format(field.key, tostring(field.value))))
+					if vim.islist(field.value) then
+						table.insert(
+							text,
+							n.text(("[%s: %s]"):format(field.key, table.concat(field.value, ", ")), "@comment")
+						)
+					else
+						table.insert(text, n.text(("[%s: %s]"):format(field.key, tostring(field.value)), "@comment"))
+					end
 				end
 
 				signal_issue.fields = { n.line(unpack(text)) }

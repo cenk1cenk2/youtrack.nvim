@@ -80,12 +80,9 @@ function M.process_fields(res)
 		elseif vim.endswith(field["$type"], "UserIssueCustomField") and type(field.value) ~= "userdata" then
 			local value
 			if vim.islist(field.value) == "table" then
-				value = vim.fn.join(
-					vim.tbl_map(function(v)
-						return v.name
-					end, field.value),
-					", "
-				)
+				value = vim.tbl_map(function(v)
+					return v.name
+				end, field.value)
 			else
 				value = field.value.name
 			end
@@ -100,13 +97,10 @@ function M.process_fields(res)
 			)
 		elseif vim.endswith(field["$type"], "GroupIssueCustomField") and type(field.value) ~= "userdata" then
 			local value
-			if vim.islist(field.value) == "table" then
-				value = vim.fn.join(
-					vim.tbl_map(function(v)
-						return v.name
-					end, field.value),
-					", "
-				)
+			if vim.islist(field.value) then
+				value = vim.tbl_map(function(v)
+					return v.name
+				end, field.value)
 			else
 				value = field.value.name
 			end
@@ -121,13 +115,10 @@ function M.process_fields(res)
 			)
 		elseif vim.endswith(field["$type"], "VersionIssueCustomField") and type(field.value) ~= "userdata" then
 			local value
-			if vim.islist(field.value) == "table" then
-				value = vim.fn.join(
-					vim.tbl_map(function(v)
-						return v.name
-					end, field.value),
-					", "
-				)
+			if vim.islist(field.value) then
+				value = vim.tbl_map(function(v)
+					return v.name
+				end, field.value)
 			else
 				value = field.value.name
 			end
@@ -142,13 +133,10 @@ function M.process_fields(res)
 			)
 		elseif vim.endswith(field["$type"], "OwnedIssueCustomField") and type(field.value) ~= "userdata" then
 			local value
-			if vim.islist(field.value) == "table" then
-				value = vim.fn.join(
-					vim.tbl_map(function(v)
-						return v.name
-					end, field.value),
-					", "
-				)
+			if vim.islist(field.value) then
+				value = vim.tbl_map(function(v)
+					return v.name
+				end, field.value)
 			else
 				value = field.value.name
 			end
@@ -163,13 +151,10 @@ function M.process_fields(res)
 			)
 		elseif vim.endswith(field["$type"], "EnumIssueCustomField") and type(field.value) ~= "userdata" then
 			local value
-			if vim.islist(field.value) == "table" then
-				value = vim.fn.join(
-					vim.tbl_map(function(v)
-						return v.name
-					end, field.value),
-					", "
-				)
+			if vim.islist(field.value) then
+				value = vim.tbl_map(function(v)
+					return v.name
+				end, field.value)
 			else
 				value = field.value.name
 			end
