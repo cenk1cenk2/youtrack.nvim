@@ -197,13 +197,13 @@ function M.get_issues(opts)
 				}),
 				n.buffer({
 					border_style = setup.config.ui.border,
+					border_label = "Summary",
 					size = 1,
 					id = "issue_summary",
 					buf = vim.api.nvim_create_buf(false, true),
 					autoscroll = false,
 					autofocus = false,
 					filetype = "markdown",
-					border_label = "Description",
 				}),
 				n.paragraph({
 					id = "issue_fields",
@@ -213,6 +213,7 @@ function M.get_issues(opts)
 				}),
 				n.buffer({
 					border_style = setup.config.ui.border,
+					border_label = "Description",
 					flex = 2,
 					id = "issue_description",
 					buf = vim.api.nvim_create_buf(false, true),
