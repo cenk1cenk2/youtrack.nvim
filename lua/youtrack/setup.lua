@@ -60,7 +60,7 @@ M.config = {
 	},
 	issue = {
 		size = {
-			height = 64,
+			height = 48,
 			width = 180,
 		},
 		fields = {},

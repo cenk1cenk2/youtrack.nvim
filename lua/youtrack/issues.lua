@@ -40,6 +40,7 @@ function M.get_issues(opts)
 			should_refresh = nil,
 			header = {},
 			fields = {},
+			tags = {},
 		})
 	end
 	local signal = M._.state.signal
@@ -65,32 +66,6 @@ function M.get_issues(opts)
 
 	local body = n.tabs(
 		{ active_tab = signal.active },
-		n.columns(
-			{ flex = 0 },
-			n.button({
-				label = "Issues",
-				autofocus = false,
-				border_style = setup.config.ui.border,
-				-- global_press_key = "<S-u>",
-				is_active = is_tab_active("issues"),
-				on_press = function()
-					signal.active = "issues"
-				end,
-				hidden = signal_issues.query:negate(),
-			}),
-			n.gap(1),
-			n.button({
-				label = "Issue",
-				autofocus = false,
-				border_style = setup.config.ui.border,
-				-- global_press_key = "<S-u>",
-				is_active = is_tab_active("issue"),
-				on_press = function()
-					signal.active = "issue"
-				end,
-				hidden = signal_issue.issue:negate(),
-			})
-		),
 		n.tab(
 			{ id = "error" },
 			n.rows(
@@ -164,7 +139,7 @@ function M.get_issues(opts)
 					prepare_node = function(node, line, _)
 						line:append(("[%s]"):format(node.project.name), "@class")
 						line:append(" ")
-						line:append(node.text, "@constant")
+						line:append(node.text, "@function")
 						line:append(" ")
 						line:append(node.summary, "@string")
 
@@ -175,7 +150,11 @@ function M.get_issues(opts)
 
 						for _, field in ipairs(node.fields) do
 							line:append(" ")
-							line:append(("[%s: %s]"):format(field.name, tostring(field.text)), "@comment")
+							line:append("[", "@comment")
+							line:append(field.name, "@constant")
+							line:append(": ", "@comment")
+							line:append(field.text)
+							line:append("]", "@comment")
 						end
 
 						return line
@@ -188,81 +167,103 @@ function M.get_issues(opts)
 				id = "issue",
 			},
 			n.rows(
-				{
-					flex = 1,
-				},
-				n.paragraph({
-					id = "issue_header",
-					border_style = setup.config.ui.border,
-					border_label = "Issue",
-					lines = signal_issue.header,
-				}),
-				n.buffer({
-					border_style = setup.config.ui.border,
-					border_label = "Summary",
-					size = 1,
-					id = "issue_summary",
-					buf = vim.api.nvim_create_buf(false, true),
-					autoscroll = false,
-					autofocus = false,
-					filetype = "markdown",
-				}),
-				n.paragraph({
-					id = "issue_fields",
-					border_style = setup.config.ui.border,
-					border_label = "Fields",
-					lines = signal_issue.fields,
-				}),
-				n.buffer({
-					border_style = setup.config.ui.border,
-					border_label = "Description",
-					flex = 2,
-					id = "issue_description",
-					buf = vim.api.nvim_create_buf(false, true),
-					autoscroll = false,
-					autofocus = true,
-					filetype = "markdown",
-					-- border_label = ("Issue %s"):format(signal.selected_issue:get_value().text),
-				}),
-				n.buffer({
-					flex = 1,
-					border_style = setup.config.ui.border,
-					id = "issue_comments",
-					buf = vim.api.nvim_create_buf(false, true),
-					autoscroll = false,
-					autofocus = false,
-					filetype = "markdown",
-					border_label = "Comments",
-				}),
-				n.text_input({
-					id = "command",
-					border_style = setup.config.ui.border,
-					border_label = "Command",
-					value = "",
-					autofocus = false,
-					autoresize = false,
-					size = 1,
-					placeholder = "Enter a command to apply to issue...",
-					max_lines = 1,
-					on_mount = function(component)
-						utils.set_component_value(component)
-					end,
-				}),
-				n.buffer({
-					id = "comment",
-					buf = vim.api.nvim_create_buf(false, true),
-					autoscroll = true,
-					border_style = setup.config.ui.border,
-					border_label = "Comment",
-					size = 4,
-					filetype = "markdown",
-				}),
+				{ flex = 1 },
+				n.columns(
+					{ flex = 1 },
+					n.rows(
+						{
+							flex = 2,
+						},
+						n.paragraph({
+							id = "issue_header",
+							border_style = setup.config.ui.border,
+							border_label = "Issue",
+							lines = signal_issue.header,
+						}),
+						n.buffer({
+							flex = 3,
+							border_style = setup.config.ui.border,
+							id = "issue_comments",
+							buf = vim.api.nvim_create_buf(false, true),
+							autoscroll = false,
+							autofocus = false,
+							filetype = "markdown",
+							border_label = "Comments",
+						}),
+						n.buffer({
+							id = "comment",
+							flex = 2,
+							buf = vim.api.nvim_create_buf(false, true),
+							autoscroll = true,
+							border_style = setup.config.ui.border,
+							border_label = "Comment",
+							filetype = "markdown",
+						})
+					),
+					n.rows(
+						{ flex = 4 },
+						n.buffer({
+							border_style = setup.config.ui.border,
+							border_label = "Summary",
+							size = 1,
+							id = "issue_summary",
+							buf = vim.api.nvim_create_buf(false, true),
+							autoscroll = false,
+							autofocus = false,
+							filetype = "markdown",
+						}),
+						n.buffer({
+							border_style = setup.config.ui.border,
+							border_label = "Description",
+							flex = 1,
+							id = "issue_description",
+							buf = vim.api.nvim_create_buf(false, true),
+							autoscroll = false,
+							autofocus = true,
+							filetype = "markdown",
+							-- border_label = ("Issue %s"):format(signal.selected_issue:get_value().text),
+						})
+					),
+					n.rows(
+						{ flex = 1 },
+						n.paragraph({
+							flex = 1,
+							id = "issue_tags",
+							border_style = setup.config.ui.border,
+							border_label = "Tags",
+							lines = signal_issue.tags,
+						}),
+						n.paragraph({
+							flex = 2,
+							id = "issue_fields",
+							border_style = setup.config.ui.border,
+							border_label = "Fields",
+							lines = signal_issue.fields,
+						})
+					)
+				),
 				n.box(
 					{
 						direction = "row",
 						flex = 0,
 						border_style = setup.config.ui.border,
 					},
+					n.text_input({
+						flex = 1,
+						id = "command",
+						border_style = setup.config.ui.border,
+						border_label = "Command",
+						value = "",
+						autofocus = false,
+						autoresize = false,
+						size = 1,
+						placeholder = "Enter a command to apply to issue...",
+						max_lines = 1,
+						on_mount = function(component)
+							utils.set_component_value(component)
+						end,
+					}),
+					n.gap(1),
 					n.button({
 						label = "Save <C-s>",
 						border_style = setup.config.ui.border,
@@ -386,9 +387,16 @@ function M.get_issues(opts)
 						autofocus = false,
 						border_style = setup.config.ui.border,
 						on_press = function()
-							signal_issues.issue = nil
+							if signal.active:get_value() == "issue" then
+								signal_issue.issue = nil
+								signal_issues.issue = nil
 
-							signal.active = "issues"
+								signal.active = "issues"
+
+								return
+							end
+
+							renderer:close()
 						end,
 					})
 				)
@@ -472,11 +480,6 @@ function M.get_issues(opts)
 					n.text(res.text, "@constant"),
 				}
 
-				for _, tag in ipairs(res.tags) do
-					table.insert(text, n.text(" "))
-					table.insert(text, n.text(("(%s)"):format(tag.name), "@tag"))
-				end
-
 				signal_issue.header = {
 					n.line(unpack(text)),
 				}
@@ -487,19 +490,36 @@ function M.get_issues(opts)
 				utils.set_component_buffer_content(issue_summary, res.summary, true)
 			end
 
-			local issue_fields = renderer:get_component_by_id("issue_fields")
-
-			if issue_fields ~= nil then
+			local issue_tags = renderer:get_component_by_id("issue_tags")
+			if issue_tags ~= nil then
 				local text = {}
 
-				for i, field in ipairs(res.fields) do
-					if i > 1 then
-						table.insert(text, n.text(" "))
-					end
-					table.insert(text, n.text(("[%s: %s]"):format(field.name, field.text), "@comment"))
+				for _, tag in ipairs(res.tags) do
+					table.insert(text, n.text(("(%s)"):format(tag.name), "@tag"))
 				end
 
-				signal_issue.fields = { n.line(unpack(text)) }
+				signal_issue.tags = vim.tbl_map(function(line)
+					return n.line(line)
+				end, text)
+			end
+
+			local issue_fields = renderer:get_component_by_id("issue_fields")
+			if issue_fields ~= nil then
+				local lines = {}
+
+				for _, field in ipairs(res.fields) do
+					table.insert(lines, {
+						n.text("[", "@comment"),
+						n.text(field.name, "@constant"),
+						n.text(": "),
+						n.text(field.text),
+						n.text("]", "@comment"),
+					})
+				end
+
+				signal_issue.fields = vim.tbl_map(function(line)
+					return n.line(unpack(line))
+				end, lines)
 			end
 
 			local issue_description = renderer:get_component_by_id("issue_description")
@@ -527,7 +547,7 @@ function M.get_issues(opts)
 					vim.list_extend(
 						comments,
 						vim.list_extend({
-							("### %s - %s"):format(comment.author, comment.created_at),
+							("# %s - %s"):format(comment.author, comment.created_at),
 							"",
 						}, vim.split(comment.text, "\n"))
 					)

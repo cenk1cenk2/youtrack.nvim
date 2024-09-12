@@ -616,49 +616,40 @@ fn process_issue(issue: JsonValue) -> Result<ProcessedIssue, Error> {
         comments: None,
     };
 
-    result.comments = issue
-        .clone()
-        .get_mut("comments")
-        .map(|comments| {
-            let value = comments.as_array_mut().unwrap();
-            value.sort_by(|a, b| {
-                b.get("created")
-                    .unwrap()
-                    .as_i64()
-                    .unwrap()
-                    .cmp(&a.get("created").unwrap().as_i64().unwrap())
-            });
-
-            let date = DateTime::from_timestamp_millis(
-                value
-                    .first()
-                    .unwrap()
-                    .get("created")
-                    .unwrap()
-                    .as_i64()
-                    .unwrap(),
-            )
-            .unwrap();
-
-            value
+    if let Some(field) = issue.get("comments") {
+        if let Some(comments) = field.as_array() {
+            result.comments = comments
                 .iter()
+                .rev()
                 .map(|comment| {
-                    Ok(ProcessedComment {
-                        author: comment
-                            .get("author")
-                            .unwrap()
-                            .get("fullName")
-                            .unwrap()
-                            .as_str()
-                            .unwrap()
-                            .to_string(),
-                        text: comment.get("text").unwrap().as_str().unwrap().to_string(),
-                        created_at: date.format("%FT%T").to_string(),
+                    comment.as_object().map(|comment| {
+                        let date = DateTime::from_timestamp_millis(
+                            comment.get("created").unwrap().as_i64().unwrap(),
+                        )
+                        .unwrap();
+
+                        ProcessedComment {
+                            author: comment
+                                .get("author")
+                                .unwrap()
+                                .get("fullName")
+                                .unwrap()
+                                .as_str()
+                                .unwrap()
+                                .to_string(),
+                            text: comment
+                                .get("text")
+                                .unwrap()
+                                .as_str()
+                                .unwrap_or("[No text]")
+                                .to_string(),
+                            created_at: date.format("%FT%T").to_string(),
+                        }
                     })
                 })
-                .collect::<Result<Vec<ProcessedComment>, Error>>()
-        })
-        .transpose()?;
+                .collect::<Option<Vec<ProcessedComment>>>();
+        }
+    }
 
     if let Some(description) = issue.get("description").unwrap().as_str() {
         result.description = Some(description.to_string());
@@ -676,6 +667,16 @@ fn process_custom_fields(fields: Vec<JsonValue>) -> Result<Vec<ProcessedCustomFi
                 id: field.get("id").unwrap().as_str().unwrap().to_string(),
                 name: field.get("name").unwrap().as_str().unwrap().to_string(),
                 text: "None".to_string(),
+                value: None,
+                values: None,
+            });
+
+            return;
+        } else if field["value"].is_array() && field["value"].as_array().unwrap().is_empty() {
+            result.push(ProcessedCustomField {
+                id: field.get("id").unwrap().as_str().unwrap().to_string(),
+                name: field.get("name").unwrap().as_str().unwrap().to_string(),
+                text: "[None]".to_string(),
                 value: None,
                 values: None,
             });
