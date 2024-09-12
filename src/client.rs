@@ -1,3 +1,6 @@
+use std::fmt::Debug;
+
+use chrono::prelude::*;
 use mlua::prelude::*;
 use mlua::{AppDataRef, Lua};
 use serde::{Deserialize, Serialize};
@@ -23,7 +26,64 @@ impl Default for Pagination {
     }
 }
 
-macros::from_lua!(Pagination);
+from_lua!(Pagination);
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProcessedSavedQuery {
+    pub id: String,
+
+    pub name: String,
+
+    pub query: String,
+}
+
+into_lua!(ProcessedSavedQuery);
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProcessedIssue {
+    pub id: String,
+
+    pub text: String,
+
+    pub summary: String,
+
+    pub description: Option<String>,
+
+    pub project: ProcessedProject,
+
+    pub fields: Vec<ProcessedCustomField>,
+
+    pub tags: Vec<ProcessedTags>,
+
+    pub comments: Option<Vec<ProcessedComment>>,
+}
+
+from_lua!(ProcessedIssue);
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProcessedProject {
+    pub id: String,
+
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProcessedTags {
+    pub id: String,
+
+    pub name: String,
+
+    pub color: JsonValue,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProcessedComment {
+    pub author: String,
+
+    pub text: String,
+
+    pub created_at: String,
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetSavedQueries {
@@ -53,8 +113,8 @@ pub async fn get_saved_queries(
 
     url.path_segments_mut().unwrap().push("savedQueries");
 
-    let mut query: Vec<(&str, JsonValue)> = vec![
-        ("fields", JsonValue::String("name,query".into())),
+    let query: Vec<(&str, JsonValue)> = vec![
+        ("fields", JsonValue::String("id,name,query".into())),
         (
             "$top",
             JsonValue::Number(
@@ -83,10 +143,6 @@ pub async fn get_saved_queries(
         ),
     ];
 
-    m.config.clone().issue.fields.iter().for_each(|field| {
-        query.push(("customFields", JsonValue::String(field.clone())));
-    });
-
     let req = m.client.get(url).query(&query);
 
     log::debug!("Youtrack issue add comment request: {:?}", req);
@@ -96,12 +152,19 @@ pub async fn get_saved_queries(
     match res.status() {
         reqwest::StatusCode::OK => {
             let json: JsonValue = res.json().await?;
+            let result = json
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|query| process_saved_query(query.clone()))
+                .collect::<Result<Vec<ProcessedSavedQuery>, Error>>()?;
+
             log::debug!(
                 "Youtrack saved queries fetched: {:?} -> {:#?}",
                 options,
-                json
+                result
             );
-            callback.call((LuaNil, lua.to_value(&json)))?;
+            callback.call((LuaNil, lua.to_value(&result)))?;
         }
         _ => {
             log::debug!(
@@ -150,7 +213,7 @@ pub async fn get_issues(
         (
             "fields",
             JsonValue::String(
-                "id,idReadable,summary,description,project(id,name),customFields(name,presentation,value(name,presentation,color(background,foreground))),tags(color(background,foreground),name)"
+                "id,idReadable,summary,description,project(id,name),customFields(id,name,presentation,value(id,name,presentation,color(background,foreground))),tags(id,color(background,foreground),name)"
                     .into(),
             ),
         ),
@@ -205,12 +268,19 @@ pub async fn get_issues(
     match res.status() {
         reqwest::StatusCode::OK => {
             let json: JsonValue = res.json().await?;
+            let processed = json
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|issue| process_issue(issue.clone()))
+                .collect::<Result<Vec<ProcessedIssue>, Error>>()?;
+
             log::debug!(
                 "Youtrack issues matching: {:?} -> {:#?}",
                 options.unwrap_or_default(),
-                json
+                processed
             );
-            callback.call((LuaNil, lua.to_value(&json)))?;
+            callback.call((LuaNil, lua.to_value(&processed)))?;
         }
         _ => {
             log::debug!(
@@ -251,7 +321,7 @@ pub async fn get_issue(
     let query: Vec<(&str, JsonValue)> = vec![(
         "fields",
         JsonValue::String(
-            "id,idReadable,summary,description,project(id,name),customFields(name,presentation,value(name,presentation,color(background,foreground))),tags(color(background,foreground),name),comments(author(fullName),text,created)"
+            "id,idReadable,summary,description,project(id,name),customFields(id,name,presentation,value(id,name,presentation,color(background,foreground))),tags(id,color(background,foreground),name),comments(author(fullName),text,created)"
                 .into(),
         ),
     )];
@@ -265,8 +335,10 @@ pub async fn get_issue(
     match res.status() {
         reqwest::StatusCode::OK => {
             let json: JsonValue = res.json().await?;
-            log::debug!("Youtrack issue details: {:?} -> {:#?}", options, json);
-            callback.call((LuaNil, lua.to_value(&json)))?;
+            let processed = process_issue(json.clone())?;
+
+            log::debug!("Youtrack issue details: {:?} -> {:#?}", options, processed);
+            callback.call((LuaNil, lua.to_value(&processed)))?;
         }
         _ => {
             log::debug!(
@@ -458,4 +530,229 @@ pub async fn add_issue_comment(
     }
 
     Ok(NoData)
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProcessedCustomField {
+    pub id: String,
+
+    pub name: String,
+
+    pub text: String,
+
+    pub value: Option<JsonValue>,
+
+    pub values: Option<Vec<JsonValue>>,
+}
+
+fn process_saved_query(query: JsonValue) -> Result<ProcessedSavedQuery, Error> {
+    Ok(ProcessedSavedQuery {
+        id: query.get("id").unwrap().as_str().unwrap().to_string(),
+        name: query.get("name").unwrap().as_str().unwrap().to_string(),
+        query: query.get("query").unwrap().as_str().unwrap().to_string(),
+    })
+}
+
+fn process_issue(issue: JsonValue) -> Result<ProcessedIssue, Error> {
+    let project = ProcessedProject {
+        id: issue
+            .get("project")
+            .unwrap()
+            .get("id")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_string(),
+        name: issue
+            .get("project")
+            .unwrap()
+            .get("name")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_string(),
+    };
+
+    let fields = process_custom_fields(
+        issue
+            .get("customFields")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .to_vec(),
+    )?;
+
+    let tags = issue
+        .get("tags")
+        .map(|tags| {
+            tags.as_array()
+                .unwrap()
+                .iter()
+                .map(|tag| {
+                    Ok(ProcessedTags {
+                        id: tag.get("id").unwrap().as_str().unwrap().to_string(),
+                        name: tag.get("name").unwrap().as_str().unwrap().to_string(),
+                        color: tag.get("color").unwrap().clone(),
+                    })
+                })
+                .collect::<Result<Vec<ProcessedTags>, Error>>()
+        })
+        .transpose()?
+        .unwrap_or(vec![]);
+
+    let mut result = ProcessedIssue {
+        id: issue.get("id").unwrap().as_str().unwrap().to_string(),
+        text: issue
+            .get("idReadable")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_string(),
+        summary: issue.get("summary").unwrap().as_str().unwrap().to_string(),
+        description: None,
+        project,
+        fields,
+        tags,
+        comments: None,
+    };
+
+    result.comments = issue
+        .clone()
+        .get_mut("comments")
+        .map(|comments| {
+            let value = comments.as_array_mut().unwrap();
+            value.sort_by(|a, b| {
+                b.get("created")
+                    .unwrap()
+                    .as_i64()
+                    .unwrap()
+                    .cmp(&a.get("created").unwrap().as_i64().unwrap())
+            });
+
+            let date = DateTime::from_timestamp_millis(
+                value
+                    .first()
+                    .unwrap()
+                    .get("created")
+                    .unwrap()
+                    .as_i64()
+                    .unwrap(),
+            )
+            .unwrap();
+
+            value
+                .iter()
+                .map(|comment| {
+                    Ok(ProcessedComment {
+                        author: comment
+                            .get("author")
+                            .unwrap()
+                            .get("fullName")
+                            .unwrap()
+                            .as_str()
+                            .unwrap()
+                            .to_string(),
+                        text: comment.get("text").unwrap().as_str().unwrap().to_string(),
+                        created_at: date.format("%FT%T").to_string(),
+                    })
+                })
+                .collect::<Result<Vec<ProcessedComment>, Error>>()
+        })
+        .transpose()?;
+
+    if let Some(description) = issue.get("description").unwrap().as_str() {
+        result.description = Some(description.to_string());
+    }
+
+    Ok(result)
+}
+
+fn process_custom_fields(fields: Vec<JsonValue>) -> Result<Vec<ProcessedCustomField>, Error> {
+    let mut result = vec![];
+
+    fields.iter().for_each(|field| {
+        if field["value"].is_null() {
+            result.push(ProcessedCustomField {
+                id: field.get("id").unwrap().as_str().unwrap().to_string(),
+                name: field.get("name").unwrap().as_str().unwrap().to_string(),
+                text: "None".to_string(),
+                value: None,
+                values: None,
+            });
+
+            return;
+        }
+
+        match field.get("$type").unwrap().as_str().unwrap() {
+            "SimpleIssueCustomField" => {
+                let value = field.get("value").unwrap();
+
+                result.push(ProcessedCustomField {
+                    id: field.get("id").unwrap().as_str().unwrap().to_string(),
+                    name: field.get("name").unwrap().as_str().unwrap().to_string(),
+                    text: value.to_string(),
+                    value: None,
+                    values: None,
+                })
+            }
+            "DateIssueCustomField" => {
+                let value = field.get("value").unwrap().as_i64().unwrap();
+
+                let date = DateTime::from_timestamp_millis(value).unwrap();
+
+                result.push(ProcessedCustomField {
+                    id: field.get("id").unwrap().as_str().unwrap().to_string(),
+                    name: field.get("name").unwrap().as_str().unwrap().to_string(),
+                    text: date.format("%F").to_string(),
+                    value: None,
+                    values: None,
+                })
+            }
+            "PeriodIssueCustomField" => {
+                let value = field.get("value").unwrap().as_object().unwrap();
+
+                result.push(ProcessedCustomField {
+                    id: field.get("id").unwrap().as_str().unwrap().to_string(),
+                    name: field.get("name").unwrap().as_str().unwrap().to_string(),
+                    text: value
+                        .clone()
+                        .get("presentation")
+                        .unwrap()
+                        .as_str()
+                        .unwrap()
+                        .to_string(),
+                    value: Some(JsonValue::Object(value.clone())),
+                    values: None,
+                })
+            }
+            _ => {
+                let value = field.get("value").unwrap();
+                if value.is_array() {
+                    let values = value.as_array().unwrap();
+
+                    result.push(ProcessedCustomField {
+                        id: field.get("id").unwrap().as_str().unwrap().to_string(),
+                        name: field.get("name").unwrap().as_str().unwrap().to_string(),
+                        text: values
+                            .iter()
+                            .map(|v| v.get("name").unwrap().as_str().unwrap())
+                            .collect::<Vec<&str>>()
+                            .join(", "),
+                        value: None,
+                        values: Some(values.clone()),
+                    })
+                } else {
+                    result.push(ProcessedCustomField {
+                        id: field.get("id").unwrap().as_str().unwrap().to_string(),
+                        name: field.get("name").unwrap().as_str().unwrap().to_string(),
+                        text: value.get("name").unwrap().as_str().unwrap().to_string(),
+                        value: Some(value.clone()),
+                        values: None,
+                    })
+                }
+            }
+        }
+    });
+
+    Ok(result)
 }

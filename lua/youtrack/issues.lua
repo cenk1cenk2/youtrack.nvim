@@ -164,30 +164,18 @@ function M.get_issues(opts)
 					prepare_node = function(node, line, _)
 						line:append(("[%s]"):format(node.project.name), "@class")
 						line:append(" ")
-						line:append(node.idReadable, "@constant")
+						line:append(node.text, "@constant")
 						line:append(" ")
 						line:append(node.summary, "@string")
 
-						if node.tags and #node.tags > 0 then
-							for _, tag in ipairs(node.tags) do
-								line:append(" ")
-								line:append(("(%s)"):format(tag.name), "@tag")
-							end
+						for _, tag in ipairs(node.tags) do
+							line:append(" ")
+							line:append(("(%s)"):format(tag.name), "@tag")
 						end
 
-						local fields = utils.process_fields(node)
-						if #fields > 0 then
-							for _, field in ipairs(fields) do
-								line:append(" ")
-								if vim.islist(field.value) then
-									line:append(
-										("[%s: %s]"):format(field.key, table.concat(field.value, ", ")),
-										"@comment"
-									)
-								else
-									line:append(("[%s: %s]"):format(field.key, tostring(field.value)), "@comment")
-								end
-							end
+						for _, field in ipairs(node.fields) do
+							line:append(" ")
+							line:append(("[%s: %s]"):format(field.name, tostring(field.text)), "@comment")
 						end
 
 						return line
@@ -234,7 +222,7 @@ function M.get_issues(opts)
 					autoscroll = false,
 					autofocus = true,
 					filetype = "markdown",
-					-- border_label = ("Issue %s"):format(signal.selected_issue:get_value().idReadable),
+					-- border_label = ("Issue %s"):format(signal.selected_issue:get_value().text),
 				}),
 				n.buffer({
 					flex = 1,
@@ -305,21 +293,15 @@ function M.get_issues(opts)
 											return
 										end
 
-										log.info("Issue updated: %s", signal_issue.issue:get_value().idReadable)
+										log.info("Issue updated: %s", signal_issue.issue:get_value().text)
 
 										signal_issue.should_refresh = true
 									end)
 								else
-									log.debug(
-										"Nothing changed for the issue: %s",
-										signal_issue.issue:get_value().idReadable
-									)
+									log.debug("Nothing changed for the issue: %s", signal_issue.issue:get_value().text)
 								end
 							else
-								log.debug(
-									"No need to update for the issue: %s",
-									signal_issue.issue:get_value().idReadable
-								)
+								log.debug("No need to update for the issue: %s", signal_issue.issue:get_value().text)
 							end
 
 							local command = renderer:get_component_by_id("command")
@@ -335,7 +317,7 @@ function M.get_issues(opts)
 
 										log.info(
 											"Command applied to issue: %s -> %s",
-											signal_issue.issue:get_value().idReadable,
+											signal_issue.issue:get_value().text,
 											command:get_current_value()
 										)
 
@@ -347,7 +329,7 @@ function M.get_issues(opts)
 							else
 								log.debug(
 									"No command to be applied for the issue: %s",
-									signal_issue.issue:get_value().idReadable
+									signal_issue.issue:get_value().text
 								)
 							end
 
@@ -363,7 +345,7 @@ function M.get_issues(opts)
 										return
 									end
 
-									log.info("Comment applied to issue: %s", signal_issue.issue:get_value().idReadable)
+									log.info("Comment applied to issue: %s", signal_issue.issue:get_value().text)
 
 									utils.set_component_buffer_content(comment, "")
 
@@ -372,7 +354,7 @@ function M.get_issues(opts)
 							else
 								log.debug(
 									"No comment to be applied for the issue: %s",
-									signal_issue.issue:get_value().idReadable
+									signal_issue.issue:get_value().text
 								)
 							end
 						end,
@@ -394,9 +376,7 @@ function M.get_issues(opts)
 						autofocus = false,
 						border_style = setup.config.ui.border,
 						on_press = function()
-							vim.ui.open(
-								("%s/issue/%s"):format(setup.config.url, signal_issue.issue:get_value().idReadable)
-							)
+							vim.ui.open(("%s/issue/%s"):format(setup.config.url, signal_issue.issue:get_value().text))
 						end,
 					}),
 					n.gap(1),
@@ -489,14 +469,12 @@ function M.get_issues(opts)
 				local text = {
 					n.text(("[%s]"):format(res.project.name), "@class"),
 					n.text(" "),
-					n.text(res.idReadable, "@constant"),
+					n.text(res.text, "@constant"),
 				}
 
-				if res.tags and #res.tags > 0 then
-					for _, tag in ipairs(res.tags) do
-						table.insert(text, n.text(" "))
-						table.insert(text, n.text(("(%s)"):format(tag.name), "@tag"))
-					end
+				for _, tag in ipairs(res.tags) do
+					table.insert(text, n.text(" "))
+					table.insert(text, n.text(("(%s)"):format(tag.name), "@tag"))
 				end
 
 				signal_issue.header = {
@@ -512,22 +490,13 @@ function M.get_issues(opts)
 			local issue_fields = renderer:get_component_by_id("issue_fields")
 
 			if issue_fields ~= nil then
-				local fields = utils.process_fields(res)
-
 				local text = {}
 
-				for i, field in ipairs(fields) do
+				for i, field in ipairs(res.fields) do
 					if i > 1 then
 						table.insert(text, n.text(" "))
 					end
-					if vim.islist(field.value) then
-						table.insert(
-							text,
-							n.text(("[%s: %s]"):format(field.key, table.concat(field.value, ", ")), "@comment")
-						)
-					else
-						table.insert(text, n.text(("[%s: %s]"):format(field.key, tostring(field.value)), "@comment"))
-					end
+					table.insert(text, n.text(("[%s: %s]"):format(field.name, field.text), "@comment"))
 				end
 
 				signal_issue.fields = { n.line(unpack(text)) }
@@ -550,27 +519,18 @@ function M.get_issues(opts)
 			local issue_comments = renderer:get_component_by_id("issue_comments")
 			if issue_comments ~= nil then
 				local comments = {}
-				if type(res.comments) == "table" and #res.comments > 0 then
-					table.sort(res.comments, function(a, b)
-						return a.created > b.created
-					end)
-
-					for i, comment in ipairs(res.comments) do
-						if i > 1 then
-							table.insert(comments, "")
-						end
-
-						vim.list_extend(
-							comments,
-							vim.list_extend({
-								("### %s - %s"):format(
-									comment.author.fullName,
-									os.date("%Y%m%dT%H:%M:%S", comment.created / 1000)
-								),
-								"",
-							}, vim.split(comment.text, "\n"))
-						)
+				for i, comment in ipairs(res.comments) do
+					if i > 1 then
+						table.insert(comments, "")
 					end
+
+					vim.list_extend(
+						comments,
+						vim.list_extend({
+							("### %s - %s"):format(comment.author, comment.created_at),
+							"",
+						}, vim.split(comment.text, "\n"))
+					)
 				end
 
 				utils.set_component_buffer_content(issue_comments, comments)
@@ -582,12 +542,12 @@ function M.get_issues(opts)
 
 	signal_issue.should_refresh:observe(function(should_refresh)
 		if should_refresh then
-			log.debug("Should refresh the given issue: %s", signal_issue.issue:get_value().idReadable)
+			log.debug("Should refresh the given issue: %s", signal_issue.issue:get_value().text)
 			local issue = signal_issues.issue:get_value()
 			signal_issues.issue = nil
 			signal_issues.issue = issue
 			signal_issue.should_refresh = nil
-			log.info("Issue refreshed: %s", signal_issue.issue:get_value().idReadable)
+			log.info("Issue refreshed: %s", signal_issue.issue:get_value().text)
 		end
 	end)
 
