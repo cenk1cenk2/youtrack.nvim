@@ -169,14 +169,7 @@ function M.get_issues(opts)
 			n.rows(
 				{ flex = 1 },
 				n.columns(
-					n.paragraph({
-						id = "issue_header",
-						border_style = setup.config.ui.border,
-						flex = 1,
-						size = 1,
-						border_label = "Issue",
-						lines = signal_issue.header,
-					}),
+					{ flex = 0 },
 					n.buffer({
 						border_style = setup.config.ui.border,
 						border_label = "Summary",
@@ -187,34 +180,20 @@ function M.get_issues(opts)
 						autoscroll = false,
 						autofocus = false,
 						filetype = "markdown",
+					}),
+					n.paragraph({
+						id = "issue_header",
+						border_style = setup.config.ui.border,
+						align = "center",
+						is_focusable = false,
+						flex = 3,
+						size = 1,
+						border_label = "Issue",
+						lines = signal_issue.header,
 					})
 				),
 				n.columns(
 					{ flex = 1 },
-					n.rows(
-						{
-							flex = 2,
-						},
-						n.buffer({
-							flex = 3,
-							border_style = setup.config.ui.border,
-							id = "issue_comments",
-							buf = vim.api.nvim_create_buf(false, true),
-							autoscroll = false,
-							autofocus = false,
-							filetype = "markdown",
-							border_label = "Comments",
-						}),
-						n.buffer({
-							id = "comment",
-							flex = 2,
-							buf = vim.api.nvim_create_buf(false, true),
-							autoscroll = true,
-							border_style = setup.config.ui.border,
-							border_label = "Comment",
-							filetype = "markdown",
-						})
-					),
 					n.rows(
 						{ flex = 4 },
 						n.buffer({
@@ -226,24 +205,51 @@ function M.get_issues(opts)
 							autoscroll = false,
 							autofocus = true,
 							filetype = "markdown",
-							-- border_label = ("Issue %s"):format(signal.selected_issue:get_value().text),
+						})
+					),
+					n.rows(
+						{
+							flex = 2,
+						},
+						n.buffer({
+							flex = 2,
+							border_style = setup.config.ui.border,
+							id = "issue_comments",
+							buf = vim.api.nvim_create_buf(false, true),
+							autoscroll = false,
+							autofocus = false,
+							filetype = "markdown",
+							border_label = "Comments",
+						}),
+						n.buffer({
+							id = "comment",
+							flex = 1,
+							buf = vim.api.nvim_create_buf(false, true),
+							autoscroll = true,
+							border_style = setup.config.ui.border,
+							border_label = "Comment",
+							filetype = "markdown",
 						})
 					),
 					n.rows(
 						{ flex = 1 },
 						n.paragraph({
-							flex = 1,
-							id = "issue_tags",
-							border_style = setup.config.ui.border,
-							border_label = "Tags",
-							lines = signal_issue.tags,
-						}),
-						n.paragraph({
 							flex = 2,
 							id = "issue_fields",
+							is_focusable = false,
+							align = "center",
 							border_style = setup.config.ui.border,
 							border_label = "Fields",
 							lines = signal_issue.fields,
+						}),
+						n.paragraph({
+							flex = 1,
+							id = "issue_tags",
+							is_focusable = false,
+							align = "center",
+							border_style = setup.config.ui.border,
+							border_label = "Tags",
+							lines = signal_issue.tags,
 						})
 					)
 				),
