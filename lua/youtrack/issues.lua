@@ -413,7 +413,7 @@ function M.get_issues(opts)
 		renderer:set_size(setup.config[active].size)
 	end)
 
-	signal.error:skip(1):observe(function(err)
+	signal.error:observe(function(err)
 		if not err then
 			return
 		end
@@ -426,7 +426,7 @@ function M.get_issues(opts)
 		signal.active = "error"
 	end)
 
-	signal_issues.query:skip(1):debounce(500):observe(function(query)
+	signal_issues.query:debounce(500):observe(function(query)
 		if query == nil then
 			return
 		end
@@ -463,8 +463,8 @@ function M.get_issues(opts)
 		end)
 	end)
 
-	signal_issues.issue:skip(1):observe(function(issue)
-		if not issue then
+	signal_issues.issue:observe(function(issue)
+		if issue == nil then
 			return
 		end
 
@@ -566,7 +566,7 @@ function M.get_issues(opts)
 		end)
 	end)
 
-	signal_issue.should_refresh:skip(1):observe(function(should_refresh)
+	signal_issue.should_refresh:observe(function(should_refresh)
 		if should_refresh then
 			log.debug("Should refresh the given issue: %s", signal_issue.issue:get_value().idReadable)
 			local issue = signal_issues.issue:get_value()
