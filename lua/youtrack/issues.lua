@@ -170,16 +170,31 @@ function M.get_issues(opts)
 				{ flex = 1 },
 				n.columns(
 					{ flex = 1 },
+					n.paragraph({
+						id = "issue_header",
+						border_style = setup.config.ui.border,
+						flex = 1,
+						border_label = "Issue",
+						lines = signal_issue.header,
+					}),
+					n.buffer({
+						border_style = setup.config.ui.border,
+						border_label = "Summary",
+						flex = 4,
+						size = 1,
+						id = "issue_summary",
+						buf = vim.api.nvim_create_buf(false, true),
+						autoscroll = false,
+						autofocus = false,
+						filetype = "markdown",
+					})
+				),
+				n.columns(
+					{ flex = 1 },
 					n.rows(
 						{
 							flex = 2,
 						},
-						n.paragraph({
-							id = "issue_header",
-							border_style = setup.config.ui.border,
-							border_label = "Issue",
-							lines = signal_issue.header,
-						}),
 						n.buffer({
 							flex = 3,
 							border_style = setup.config.ui.border,
@@ -202,16 +217,6 @@ function M.get_issues(opts)
 					),
 					n.rows(
 						{ flex = 4 },
-						n.buffer({
-							border_style = setup.config.ui.border,
-							border_label = "Summary",
-							size = 1,
-							id = "issue_summary",
-							buf = vim.api.nvim_create_buf(false, true),
-							autoscroll = false,
-							autofocus = false,
-							filetype = "markdown",
-						}),
 						n.buffer({
 							border_style = setup.config.ui.border,
 							border_label = "Description",
