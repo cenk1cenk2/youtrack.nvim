@@ -29,7 +29,7 @@ impl Default for Pagination {
 from_lua!(Pagination);
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ProcessedSavedQuery {
+pub struct SavedQuery {
     pub id: String,
 
     pub name: String,
@@ -37,10 +37,10 @@ pub struct ProcessedSavedQuery {
     pub query: String,
 }
 
-into_lua!(ProcessedSavedQuery);
+into_lua!(SavedQuery);
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ProcessedIssue {
+pub struct Issue {
     pub id: String,
 
     pub text: String,
@@ -49,26 +49,26 @@ pub struct ProcessedIssue {
 
     pub description: Option<String>,
 
-    pub project: ProcessedProject,
+    pub project: Project,
 
-    pub fields: Vec<ProcessedCustomField>,
+    pub fields: Vec<CustomField>,
 
-    pub tags: Vec<ProcessedTags>,
+    pub tags: Vec<Tag>,
 
-    pub comments: Option<Vec<ProcessedComment>>,
+    pub comments: Option<Vec<Comment>>,
 }
 
-from_lua!(ProcessedIssue);
+from_lua!(Issue);
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ProcessedProject {
+pub struct Project {
     pub id: String,
 
     pub name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ProcessedTags {
+pub struct Tag {
     pub id: String,
 
     pub name: String,
@@ -77,7 +77,7 @@ pub struct ProcessedTags {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ProcessedComment {
+pub struct Comment {
     pub author: String,
 
     pub text: String,
@@ -157,7 +157,7 @@ pub async fn get_saved_queries(
                 .unwrap()
                 .iter()
                 .map(|query| process_saved_query(query.clone()))
-                .collect::<Result<Vec<ProcessedSavedQuery>, Error>>()?;
+                .collect::<Result<Vec<SavedQuery>, Error>>()?;
 
             log::debug!(
                 "Youtrack saved queries fetched: {:?} -> {:#?}",
@@ -273,7 +273,7 @@ pub async fn get_issues(
                 .unwrap()
                 .iter()
                 .map(|issue| process_issue(issue.clone()))
-                .collect::<Result<Vec<ProcessedIssue>, Error>>()?;
+                .collect::<Result<Vec<Issue>, Error>>()?;
 
             log::debug!(
                 "Youtrack issues matching: {:?} -> {:#?}",
@@ -533,7 +533,7 @@ pub async fn add_issue_comment(
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ProcessedCustomField {
+pub struct CustomField {
     pub id: String,
 
     pub name: String,
@@ -545,16 +545,16 @@ pub struct ProcessedCustomField {
     pub values: Option<Vec<JsonValue>>,
 }
 
-fn process_saved_query(query: JsonValue) -> Result<ProcessedSavedQuery, Error> {
-    Ok(ProcessedSavedQuery {
+fn process_saved_query(query: JsonValue) -> Result<SavedQuery, Error> {
+    Ok(SavedQuery {
         id: query.get("id").unwrap().as_str().unwrap().to_string(),
         name: query.get("name").unwrap().as_str().unwrap().to_string(),
         query: query.get("query").unwrap().as_str().unwrap().to_string(),
     })
 }
 
-fn process_issue(issue: JsonValue) -> Result<ProcessedIssue, Error> {
-    let project = ProcessedProject {
+fn process_issue(issue: JsonValue) -> Result<Issue, Error> {
+    let project = Project {
         id: issue
             .get("project")
             .unwrap()
@@ -589,18 +589,18 @@ fn process_issue(issue: JsonValue) -> Result<ProcessedIssue, Error> {
                 .unwrap()
                 .iter()
                 .map(|tag| {
-                    Ok(ProcessedTags {
+                    Ok(Tag {
                         id: tag.get("id").unwrap().as_str().unwrap().to_string(),
                         name: tag.get("name").unwrap().as_str().unwrap().to_string(),
                         color: tag.get("color").unwrap().clone(),
                     })
                 })
-                .collect::<Result<Vec<ProcessedTags>, Error>>()
+                .collect::<Result<Vec<Tag>, Error>>()
         })
         .transpose()?
         .unwrap_or(vec![]);
 
-    let mut result = ProcessedIssue {
+    let mut result = Issue {
         id: issue.get("id").unwrap().as_str().unwrap().to_string(),
         text: issue
             .get("idReadable")
@@ -628,7 +628,7 @@ fn process_issue(issue: JsonValue) -> Result<ProcessedIssue, Error> {
                         )
                         .unwrap();
 
-                        ProcessedComment {
+                        Comment {
                             author: comment
                                 .get("author")
                                 .unwrap()
@@ -647,7 +647,7 @@ fn process_issue(issue: JsonValue) -> Result<ProcessedIssue, Error> {
                         }
                     })
                 })
-                .collect::<Option<Vec<ProcessedComment>>>();
+                .collect::<Option<Vec<Comment>>>();
         }
     }
 
@@ -658,12 +658,12 @@ fn process_issue(issue: JsonValue) -> Result<ProcessedIssue, Error> {
     Ok(result)
 }
 
-fn process_custom_fields(fields: Vec<JsonValue>) -> Result<Vec<ProcessedCustomField>, Error> {
+fn process_custom_fields(fields: Vec<JsonValue>) -> Result<Vec<CustomField>, Error> {
     let mut result = vec![];
 
     fields.iter().for_each(|field| {
         if field["value"].is_null() {
-            result.push(ProcessedCustomField {
+            result.push(CustomField {
                 id: field.get("id").unwrap().as_str().unwrap().to_string(),
                 name: field.get("name").unwrap().as_str().unwrap().to_string(),
                 text: "None".to_string(),
@@ -673,7 +673,7 @@ fn process_custom_fields(fields: Vec<JsonValue>) -> Result<Vec<ProcessedCustomFi
 
             return;
         } else if field["value"].is_array() && field["value"].as_array().unwrap().is_empty() {
-            result.push(ProcessedCustomField {
+            result.push(CustomField {
                 id: field.get("id").unwrap().as_str().unwrap().to_string(),
                 name: field.get("name").unwrap().as_str().unwrap().to_string(),
                 text: "[None]".to_string(),
@@ -688,7 +688,7 @@ fn process_custom_fields(fields: Vec<JsonValue>) -> Result<Vec<ProcessedCustomFi
             "SimpleIssueCustomField" => {
                 let value = field.get("value").unwrap();
 
-                result.push(ProcessedCustomField {
+                result.push(CustomField {
                     id: field.get("id").unwrap().as_str().unwrap().to_string(),
                     name: field.get("name").unwrap().as_str().unwrap().to_string(),
                     text: value.to_string(),
@@ -701,7 +701,7 @@ fn process_custom_fields(fields: Vec<JsonValue>) -> Result<Vec<ProcessedCustomFi
 
                 let date = DateTime::from_timestamp_millis(value).unwrap();
 
-                result.push(ProcessedCustomField {
+                result.push(CustomField {
                     id: field.get("id").unwrap().as_str().unwrap().to_string(),
                     name: field.get("name").unwrap().as_str().unwrap().to_string(),
                     text: date.format("%F").to_string(),
@@ -712,7 +712,7 @@ fn process_custom_fields(fields: Vec<JsonValue>) -> Result<Vec<ProcessedCustomFi
             "PeriodIssueCustomField" => {
                 let value = field.get("value").unwrap().as_object().unwrap();
 
-                result.push(ProcessedCustomField {
+                result.push(CustomField {
                     id: field.get("id").unwrap().as_str().unwrap().to_string(),
                     name: field.get("name").unwrap().as_str().unwrap().to_string(),
                     text: value
@@ -731,7 +731,7 @@ fn process_custom_fields(fields: Vec<JsonValue>) -> Result<Vec<ProcessedCustomFi
                 if value.is_array() {
                     let values = value.as_array().unwrap();
 
-                    result.push(ProcessedCustomField {
+                    result.push(CustomField {
                         id: field.get("id").unwrap().as_str().unwrap().to_string(),
                         name: field.get("name").unwrap().as_str().unwrap().to_string(),
                         text: values
@@ -743,7 +743,7 @@ fn process_custom_fields(fields: Vec<JsonValue>) -> Result<Vec<ProcessedCustomFi
                         values: Some(values.clone()),
                     })
                 } else {
-                    result.push(ProcessedCustomField {
+                    result.push(CustomField {
                         id: field.get("id").unwrap().as_str().unwrap().to_string(),
                         name: field.get("name").unwrap().as_str().unwrap().to_string(),
                         text: value.get("name").unwrap().as_str().unwrap().to_string(),
