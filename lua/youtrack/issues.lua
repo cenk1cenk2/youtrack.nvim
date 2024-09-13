@@ -43,6 +43,7 @@ function M.get_issues(opts)
 			header = {},
 			fields = {},
 			tags = {},
+			command = "",
 		})
 
 		M._.state.renderer = n.create_renderer(vim.tbl_deep_extend("force", {}, setup.config.ui, {
@@ -288,12 +289,15 @@ function M.get_issues(opts)
 						id = "command",
 						border_style = setup.config.ui.border,
 						border_label = "Command",
-						value = "",
+						value = signal_issue.command,
 						autofocus = false,
 						autoresize = false,
 						size = 1,
 						placeholder = "Enter a command to apply to issue...",
 						max_lines = 1,
+						on_change = function(value, _)
+							signal_issue.command = value
+						end,
 						on_mount = function(component)
 							utils.set_component_value(component)
 						end,
