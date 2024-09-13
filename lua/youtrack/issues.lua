@@ -29,7 +29,7 @@ function M.get_issues(opts)
 		{ name = "issue_comments", scratch = true },
 		{ name = "comment", scratch = false },
 	}) do
-		M._.buffers[buffer.name] = vim.api.nvim_create_buf(true, buffer.scratch)
+		M._.buffers[buffer.name] = vim.api.nvim_create_buf(false, buffer.scratch)
 	end
 
 	local renderer = n.create_renderer(vim.tbl_deep_extend("force", {}, setup.config.ui, {
