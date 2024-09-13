@@ -18,7 +18,9 @@ function M.get_issues(opts)
 	opts = opts or {}
 
 	if not opts.toggle or not M._.state then
-		M._.state = {}
+		M._.state = {
+			buffer = {},
+		}
 
 		M._.state.signal = n.create_signal({
 			active = "issues",
@@ -47,6 +49,10 @@ function M.get_issues(opts)
 			position = "50%",
 			relative = "editor",
 		}))
+
+		for _, name in ipairs({ "error", "issue_summary", "issue_description", "issue_comments", "comment" }) do
+			M._.state.buffer[name] = vim.api.nvim_create_buf(false, true)
+		end
 	end
 	local renderer = M._.state.renderer
 	local signal = M._.state.signal
@@ -76,7 +82,7 @@ function M.get_issues(opts)
 					id = "error",
 					border_style = setup.config.ui.border,
 					flex = 1,
-					buf = vim.api.nvim_create_buf(false, true),
+					buf = M._.state.buffer.error,
 					autoscroll = false,
 					border_label = "Error",
 				})
@@ -178,7 +184,7 @@ function M.get_issues(opts)
 						flex = 4,
 						size = 1,
 						id = "issue_summary",
-						buf = vim.api.nvim_create_buf(false, true),
+						buf = M._.state.buffer.issue_summary,
 						autoscroll = false,
 						autofocus = false,
 						filetype = "markdown",
@@ -203,7 +209,7 @@ function M.get_issues(opts)
 							border_label = "Description",
 							flex = 1,
 							id = "issue_description",
-							buf = vim.api.nvim_create_buf(false, true),
+							buf = M._.state.buffer.issue_description,
 							autoscroll = false,
 							autofocus = true,
 							filetype = "markdown",
@@ -217,7 +223,7 @@ function M.get_issues(opts)
 							flex = 2,
 							border_style = setup.config.ui.border,
 							id = "issue_comments",
-							buf = vim.api.nvim_create_buf(false, true),
+							buf = M._.state.buffer.issue_comments,
 							autoscroll = false,
 							autofocus = false,
 							filetype = "markdown",
@@ -226,7 +232,7 @@ function M.get_issues(opts)
 						n.buffer({
 							id = "comment",
 							flex = 1,
-							buf = vim.api.nvim_create_buf(false, true),
+							buf = M_.state.buffer.comment,
 							autoscroll = true,
 							border_style = setup.config.ui.border,
 							border_label = "Comment",
