@@ -1,6 +1,11 @@
+*_spec.lua
+.gitattributes
+.gitignore
+.stylua.toml
+/build.rs
 /openapi.json
 Cargo.lock
+LICENSE
 Makefile
+README.md
 Taskfile.yml
-.gitignore
-/build.rs
