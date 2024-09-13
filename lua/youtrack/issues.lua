@@ -310,7 +310,7 @@ function M.get_issues(opts)
 										description = d,
 									}, function(err, _)
 										if err then
-											log.print.error(err)
+											log.p.error(err)
 
 											return
 										end
@@ -332,7 +332,7 @@ function M.get_issues(opts)
 									{ id = signal_issue.issue:get_value().id, query = command:get_current_value() },
 									function(err, res)
 										if err then
-											log.print.error(err)
+											log.p.error(err)
 
 											return
 										end
@@ -362,7 +362,7 @@ function M.get_issues(opts)
 									comment = vim.fn.join(utils.get_component_buffer_content(comment), "\n"),
 								}, function(err, _)
 									if err then
-										log.print.error(err)
+										log.p.error(err)
 
 										return
 									end
@@ -603,7 +603,7 @@ function M.get_issues(opts)
 		vim.list_extend(queries, setup.config.queries)
 
 		if err then
-			log.print.error(err)
+			log.p.error(err)
 		else
 			vim.list_extend(
 				queries,
