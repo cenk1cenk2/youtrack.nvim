@@ -287,7 +287,7 @@ function M.get_issues(opts)
 						autofocus = false,
 						global_press_key = "<C-s>",
 						on_press = function()
-							if signal_issue.issue.get_value() == nil then
+							if signal_issue.issue:get_value() == nil then
 								return
 							end
 
