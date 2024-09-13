@@ -68,6 +68,7 @@ M.config = {
 }
 
 ---@param config youtrack.Config
+---@return youtrack.Config
 function M.setup(config)
 	M.config = vim.tbl_deep_extend("force", M.config, config or {})
 
