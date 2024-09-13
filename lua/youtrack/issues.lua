@@ -1,7 +1,5 @@
 local M = {
-	_ = {
-		buffers = {},
-	},
+	_ = {},
 }
 
 local lib = require("youtrack.lib")
@@ -20,18 +18,6 @@ function M.get_issues(opts)
 		M._.renderer:close()
 
 		return
-	end
-
-	for _, buffer in ipairs({
-		{ name = "error", scratch = true },
-		{ name = "issue_summary", scratch = false },
-		{ name = "issue_description", scratch = false },
-		{ name = "issue_comments", scratch = true },
-		{ name = "comment", scratch = false },
-	}) do
-		M._.buffers[buffer.name] = vim.api.nvim_create_buf(false, buffer.scratch)
-
-		vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = M._.buffers[buffer.name] })
 	end
 
 	local renderer = n.create_renderer(vim.tbl_deep_extend("force", {}, setup.config.ui, {
@@ -91,7 +77,7 @@ function M.get_issues(opts)
 					id = "error",
 					border_style = setup.config.ui.border,
 					flex = 1,
-					buf = M._.buffers.error,
+					buf = utils.create_buffer(true),
 					autoscroll = false,
 					border_label = "Error",
 				})
@@ -193,7 +179,7 @@ function M.get_issues(opts)
 						flex = 4,
 						size = 1,
 						id = "issue_summary",
-						buf = M._.buffers.issue_summary,
+						buf = utils.create_buffer(false),
 						autoscroll = false,
 						autofocus = false,
 						filetype = "markdown",
@@ -218,7 +204,7 @@ function M.get_issues(opts)
 							border_label = "Description",
 							flex = 1,
 							id = "issue_description",
-							buf = M._.buffers.issue_description,
+							buf = utils.create_buffer(false),
 							autoscroll = false,
 							autofocus = true,
 							filetype = "markdown",
@@ -232,7 +218,7 @@ function M.get_issues(opts)
 							flex = 2,
 							border_style = setup.config.ui.border,
 							id = "issue_comments",
-							buf = M._.buffers.issue_comments,
+							buf = utils.create_buffer(true),
 							autoscroll = false,
 							autofocus = false,
 							filetype = "markdown",
@@ -241,7 +227,7 @@ function M.get_issues(opts)
 						n.buffer({
 							id = "comment",
 							flex = 1,
-							buf = M._.buffers.comment,
+							buf = utils.create_buffer(false),
 							autoscroll = true,
 							border_style = setup.config.ui.border,
 							border_label = "Comment",

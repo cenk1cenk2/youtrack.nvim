@@ -1,6 +1,17 @@
 local M = {}
 
 ---
+---@param scratch boolean
+---@return integer
+function M.create_buffer(scratch)
+	local bufnr = vim.api.nvim_create_buf(false, scratch)
+
+	vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = bufnr })
+
+	return bufnr
+end
+
+---
 ---@param component any
 ---@param value? any
 ---@return any
