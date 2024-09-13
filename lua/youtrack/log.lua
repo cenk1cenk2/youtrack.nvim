@@ -47,20 +47,24 @@ M.config = {
 ---@class youtrack.LoggerSetup
 ---@field level? number
 
----@alias youtrack.LoggerSetupFn fun(config: youtrack.LoggerSetup): youtrack.Logger
+---@alias youtrack.LoggerSetupFn fun(config?: youtrack.LoggerSetup): youtrack.Logger
 
 ---@type youtrack.LoggerSetupFn
-function M.setup()
+function M.setup(config)
+	M.config = vim.tbl_deep_extend("force", M.config, config or {})
+
 	local log = function(mode, sprintf, ...)
+		if mode.level < M.config.level then
+			return
+		end
+
 		local info = debug.getinfo(2, "Sl")
 		local lineinfo = ("%s:%s"):format(info.short_src, info.currentline)
 
 		local console = string.format("[%-5s] [%s]: %s", mode.name:upper(), lineinfo, sprintf(...))
 
 		for _, line in ipairs(vim.split(console, "\n")) do
-			if mode.level >= M.config.level then
-				vim.notify(([[[%s] %s]]):format(M.config.plugin, line), mode.level)
-			end
+			vim.notify(([[[%s] %s]]):format(M.config.plugin, line), mode.level)
 		end
 	end
 
@@ -92,6 +96,12 @@ function M.setup()
 	end
 
 	return M
+end
+
+function M.set_log_level(level)
+	M.config.level = level
+
+	return level
 end
 
 return M
