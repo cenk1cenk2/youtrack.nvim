@@ -58,10 +58,7 @@ function M.setup(config)
 			return
 		end
 
-		local info = debug.getinfo(2, "Sl")
-		local lineinfo = ("%s:%s"):format(info.short_src, info.currentline)
-
-		local console = string.format("[%-5s] [%s]: %s", mode.name:upper(), lineinfo, sprintf(...))
+		local console = string.format("[%-5s]: %s", mode.name:upper(), sprintf(...))
 
 		for _, line in ipairs(vim.split(console, "\n")) do
 			vim.notify(([[[%s] %s]]):format(M.config.plugin, line), mode.level)
