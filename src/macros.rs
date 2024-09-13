@@ -18,6 +18,7 @@ macro_rules! from_lua {
     };
 }
 
+#[allow(unused_macros)]
 macro_rules! export_fn {
     ($lua:expr, $exports:expr, $name:expr, $fn:expr) => {
         $exports.set(

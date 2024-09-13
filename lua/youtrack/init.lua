@@ -4,7 +4,7 @@ local M = {
 
 ---@param config youtrack.Config
 function M.setup(config)
-	local c = require("youtrack.setup").setup(config)
+	local c = require("youtrack.config").setup(config)
 
 	local log = require("youtrack.log").setup({ level = c.log_level })
 

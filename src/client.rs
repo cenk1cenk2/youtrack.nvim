@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::Error;
 use crate::lua::NoData;
-use crate::macros::{self, from_lua, into_lua};
+use crate::macros::{from_lua, into_lua};
 use crate::Module;
 use serde_json::{json, Value as JsonValue};
 

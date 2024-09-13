@@ -37,7 +37,7 @@
 local M = {}
 
 ---@type youtrack.Config
-M.config = {
+local defaults = {
 	log_level = vim.log.levels.INFO,
 	url = "",
 	token = "",
@@ -71,12 +71,16 @@ M.config = {
 	},
 }
 
+---@type youtrack.Config
+---@diagnostic disable-next-line: missing-fields
+M.options = {}
+
 ---@param config youtrack.Config
 ---@return youtrack.Config
 function M.setup(config)
-	M.config = vim.tbl_deep_extend("force", M.config, config or {})
+	M.options = vim.tbl_deep_extend("force", {}, defaults, config or {})
 
-	return M.config
+	return M.options
 end
 
 return M
