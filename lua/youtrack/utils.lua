@@ -37,11 +37,11 @@ function M.set_component_buffer_content(component, content, modifable)
 
 	if modifable then
 		vim.api.nvim_buf_set_lines(component.bufnr, 0, -1, false, c)
-		vim.api.nvim_set_option_value("modified", false, { buffer = component.bufnr })
+		vim.api.nvim_set_option_value("modified", false, { buf = component.bufnr })
 	else
 		component:modify_buffer_content(function()
 			vim.api.nvim_buf_set_lines(component.bufnr, 0, -1, false, c)
-			vim.api.nvim_set_option_value("modified", false, { buffer = component.bufnr })
+			vim.api.nvim_set_option_value("modified", false, { buf = component.bufnr })
 		end)
 	end
 
@@ -54,7 +54,7 @@ function M.get_component_buffer_content(component)
 	return vim.api.nvim_buf_get_lines(component.bufnr, 0, -1, false)
 end
 
----@param bufnr int
+---@param bufnr integer
 ---@return string[] | nil
 function M.get_buffer_content(bufnr)
 	local content = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
