@@ -47,7 +47,7 @@ function M.set_component_buffer_content(component, content)
 		c = { "" }
 	end
 
-	if vim.api.nvim_get_option_value("modifable", { buf = component.bufnr }) then
+	if vim.api.nvim_get_option_value("modifiable", { buf = component.bufnr }) then
 		vim.api.nvim_buf_set_lines(component.bufnr, 0, -1, false, c)
 		vim.api.nvim_set_option_value("modified", false, { buf = component.bufnr })
 	else
