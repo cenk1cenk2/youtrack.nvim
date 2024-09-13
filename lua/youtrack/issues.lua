@@ -43,7 +43,7 @@ function M.get_issues(opts)
 			tags = {},
 		})
 
-		M._state.renderer = n.create_renderer(vim.tbl_deep_extend("force", {}, setup.config.ui, {
+		M._.state.renderer = n.create_renderer(vim.tbl_deep_extend("force", {}, setup.config.ui, {
 			position = "50%",
 			relative = "editor",
 		}))
