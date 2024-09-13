@@ -9,11 +9,16 @@ local setup = require("youtrack.setup")
 local utils = require("youtrack.utils")
 
 ---@class youtrack.GetIssuesOptions
----@field toggle? boolean
 
 ---@param opts youtrack.GetIssuesOptions
 function M.get_issues(opts)
 	opts = opts or {}
+
+	if M._.renderer ~= nil then
+		M._.renderer:close()
+
+		return
+	end
 
 	local renderer = n.create_renderer(vim.tbl_deep_extend("force", {}, setup.config.ui, {
 		position = "50%",
@@ -31,11 +36,11 @@ function M.get_issues(opts)
 	})
 
 	renderer:on_mount(function()
-		M._.mounted = true
+		M._.renderer = renderer
 	end)
 
 	renderer:on_unmount(function()
-		M._.mounted = false
+		M._.renderer = nil
 	end)
 
 	local signal = n.create_signal({
@@ -601,11 +606,7 @@ function M.get_issues(opts)
 			return n.node(query)
 		end, queries)
 
-		if not M._.mounted then
-			renderer:render(body)
-		else
-			renderer:close()
-		end
+		renderer:render(body)
 	end)
 end
 
