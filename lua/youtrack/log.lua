@@ -34,7 +34,7 @@ local M = {
 ---@type youtrack.LoggerConfig
 M.config = {
 	level = vim.log.levels.INFO,
-	plugin = "schema-companion.nvim",
+	plugin = "youtrack.nvim",
 	modes = {
 		{ name = "trace", level = vim.log.levels.TRACE },
 		{ name = "debug", level = vim.log.levels.DEBUG },
