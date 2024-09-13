@@ -37,9 +37,11 @@ function M.set_component_buffer_content(component, content, modifable)
 
 	if modifable then
 		vim.api.nvim_buf_set_lines(component.bufnr, 0, -1, false, c)
+		vim.api.nvim_set_option_value("modified", false, { buffer = component.bufnr })
 	else
 		component:modify_buffer_content(function()
 			vim.api.nvim_buf_set_lines(component.bufnr, 0, -1, false, c)
+			vim.api.nvim_set_option_value("modified", false, { buffer = component.bufnr })
 		end)
 	end
 
