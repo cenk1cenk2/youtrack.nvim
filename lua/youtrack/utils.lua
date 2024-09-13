@@ -2,11 +2,13 @@ local M = {}
 
 ---
 ---@param scratch boolean
+---@param modifiable boolean
 ---@return integer
-function M.create_buffer(scratch)
+function M.create_buffer(scratch, modifiable)
 	local bufnr = vim.api.nvim_create_buf(false, scratch)
 
 	vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = bufnr })
+	vim.api.nvim_set_option_value("modifiable", modifiable, { buf = bufnr })
 
 	return bufnr
 end
@@ -33,9 +35,8 @@ end
 ---
 ---@param component any
 ---@param content string | string[]
----@param modifable? boolean
 ---@return any
-function M.set_component_buffer_content(component, content, modifable)
+function M.set_component_buffer_content(component, content)
 	---@type string[]
 	local c
 	if type(content) == "string" then
@@ -46,7 +47,7 @@ function M.set_component_buffer_content(component, content, modifable)
 		c = { "" }
 	end
 
-	if modifable then
+	if vim.api.nvim_get_option_value("modifable", { buf = component.bufnr }) then
 		vim.api.nvim_buf_set_lines(component.bufnr, 0, -1, false, c)
 		vim.api.nvim_set_option_value("modified", false, { buf = component.bufnr })
 	else

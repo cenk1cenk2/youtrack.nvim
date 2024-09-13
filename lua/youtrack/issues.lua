@@ -77,7 +77,7 @@ function M.get_issues(opts)
 					id = "error",
 					border_style = setup.config.ui.border,
 					flex = 1,
-					buf = utils.create_buffer(true),
+					buf = utils.create_buffer(true, false),
 					autoscroll = false,
 					border_label = "Error",
 				})
@@ -179,7 +179,7 @@ function M.get_issues(opts)
 						flex = 4,
 						size = 1,
 						id = "issue_summary",
-						buf = utils.create_buffer(false),
+						buf = utils.create_buffer(false, true),
 						autoscroll = false,
 						autofocus = false,
 						filetype = "markdown",
@@ -204,7 +204,7 @@ function M.get_issues(opts)
 							border_label = "Description",
 							flex = 1,
 							id = "issue_description",
-							buf = utils.create_buffer(false),
+							buf = utils.create_buffer(false, true),
 							autoscroll = false,
 							autofocus = true,
 							filetype = "markdown",
@@ -218,7 +218,7 @@ function M.get_issues(opts)
 							flex = 2,
 							border_style = setup.config.ui.border,
 							id = "issue_comments",
-							buf = utils.create_buffer(true),
+							buf = utils.create_buffer(false, false),
 							autoscroll = false,
 							autofocus = false,
 							filetype = "markdown",
@@ -227,7 +227,7 @@ function M.get_issues(opts)
 						n.buffer({
 							id = "comment",
 							flex = 1,
-							buf = utils.create_buffer(false),
+							buf = utils.create_buffer(false, true),
 							autoscroll = true,
 							border_style = setup.config.ui.border,
 							border_label = "Comment",
@@ -504,12 +504,12 @@ function M.get_issues(opts)
 
 			local issue_summary = renderer:get_component_by_id("issue_summary")
 			if issue_summary ~= nil then
-				utils.set_component_buffer_content(issue_summary, res.summary, true)
+				utils.set_component_buffer_content(issue_summary, res.summary)
 			end
 
 			local issue_description = renderer:get_component_by_id("issue_description")
 			if issue_description ~= nil then
-				utils.set_component_buffer_content(issue_description, res.description, true)
+				utils.set_component_buffer_content(issue_description, res.description)
 			end
 
 			local issue_tags = renderer:get_component_by_id("issue_tags")
