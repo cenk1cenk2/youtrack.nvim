@@ -86,32 +86,32 @@ UI parameters can be passed in to further customize the global keymaps and size 
 require("youtrack").setup({
   -- rest of the configuration...
   -- global ui configuration
-	ui = {
-		border = "single",
-		width = 180,
-		keymap = {
-			close = "<Esc>",
-			focus_next = "<Tab>",
-			focus_prev = "<S-Tab>",
-			focus_left = "<Left>",
-			focus_right = "<Right>",
-			focus_up = "<Up>",
-			focus_down = "<Down>",
-		},
-	},
+  ui = {
+    border = "single",
+    width = 180,
+    keymap = {
+      close = "<Esc>",
+      focus_next = "<Tab>",
+      focus_prev = "<S-Tab>",
+      focus_left = "<Left>",
+      focus_right = "<Right>",
+      focus_up = "<Up>",
+      focus_down = "<Down>",
+    },
+  },
   -- sizing for specific views
-	issues = {
-		size = {
-			height = 24,
-			width = 180,
-		},
-	},
-	issue = {
-		size = {
-			height = 48,
-			width = 180,
-		},
-	},
+  issues = {
+    size = {
+      height = 24,
+      width = 180,
+    },
+  },
+  issue = {
+    size = {
+      height = 48,
+      width = 180,
+    },
+  },
 })
 ```
 
