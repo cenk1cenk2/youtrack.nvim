@@ -10,6 +10,11 @@ For the intersection set of handful of people that is using Youtrack and Neovim 
 - Apply commands to the issue. ![demo](./media/swappy-20240914_000749.png)
 - Open issue in the browser.
 
+## Requirements
+
+- `rust` has to be installed in your system to compile the backend.
+- `make` has to be installed in your system to build the plugin.
+
 ## Installation
 
 Even though this plugin could purely created with `lua`, I wanted to exercise with `rust` and `lua` bindings since I created this plugin for mostly myself and handful of people that is in the intersection set. You need to have `rust` installed in your system to build the plugin backend.
