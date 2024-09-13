@@ -53,6 +53,10 @@ function M.get_issues(opts)
 
 	renderer:on_unmount(function()
 		M._.renderer = nil
+
+		for _, bufnr in ipairs(M._.buffers) do
+			vim.api.nvim_set_option_value("scratch", true, { buf = bufnr })
+		end
 	end)
 
 	local signal = n.create_signal({
