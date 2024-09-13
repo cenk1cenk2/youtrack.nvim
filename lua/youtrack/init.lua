@@ -2,14 +2,15 @@ local M = {
 	get_issues = require("youtrack.issues").get_issues,
 }
 
-local lib = require("youtrack.lib")
-local log = require("youtrack.log")
-
 ---@param config youtrack.Config
 function M.setup(config)
 	local c = require("youtrack.setup").setup(config)
-	log.setup({ level = c.log_level })
-	lib.setup(c)
+
+	local log = require("youtrack.log").setup({ level = c.log_level })
+
+	require("youtrack.lib").setup(c)
+
+	log.debug("Plugin has been setup: %s", c)
 end
 
 return M
