@@ -49,11 +49,14 @@ function M.get_issues(opts)
 			position = "50%",
 			relative = "editor",
 		}))
+	end
 
-		for _, name in ipairs({ "error", "issue_summary", "issue_description", "issue_comments", "comment" }) do
+	for _, name in ipairs({ "error", "issue_summary", "issue_description", "issue_comments", "comment" }) do
+		if M._.state.buffer[name] == nil then
 			M._.state.buffer[name] = vim.api.nvim_create_buf(false, true)
 		end
 	end
+
 	local renderer = M._.state.renderer
 
 	renderer:add_mappings({
