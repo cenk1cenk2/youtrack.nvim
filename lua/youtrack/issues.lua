@@ -592,6 +592,19 @@ function M.get_issues(opts)
 			signal_issues.issue = nil
 			signal_issues.issue = issue
 			signal_issue.should_refresh = nil
+
+			local issue_summary = renderer:get_component_by_id("issue_summary")
+			if issue_summary ~= nil then
+				issue_summary:redraw()
+			end
+			local issue_description = renderer:get_component_by_id("issue_description")
+			if issue_description ~= nil then
+				issue_description:redraw()
+			end
+			local issue_comments = renderer:get_component_by_id("issue_comments")
+			if issue_comments ~= nil then
+				issue_comments:redraw()
+			end
 			log.info("Issue refreshed: %s", signal_issue.issue:get_value().text)
 		end
 	end)
