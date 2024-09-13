@@ -25,6 +25,10 @@ end
 ---@param modifable? boolean
 ---@return any
 function M.set_component_buffer_content(component, content, modifable)
+	if vim.api.nvim_buf_is_valid(component.bufnr) then
+		return component
+	end
+
 	---@type string[]
 	local c
 	if type(content) == "string" then
