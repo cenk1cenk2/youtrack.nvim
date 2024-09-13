@@ -580,7 +580,7 @@ function M.get_issues(opts)
 	end)
 
 	signal_issue.should_refresh:observe(function(should_refresh)
-		if signal_issue.issue == nil then
+		if signal_issue.issue:get_value() == nil then
 			log.debug("Issue is nil so can not refresh.")
 
 			return
