@@ -7,8 +7,8 @@ local log = require("youtrack.log")
 
 ---@param config youtrack.Config
 function M.setup(config)
-	log.setup()
 	local c = require("youtrack.setup").setup(config)
+	log.setup({ level = c.log_level })
 	lib.setup(c)
 end
 

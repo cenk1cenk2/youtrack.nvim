@@ -1,4 +1,5 @@
 ---@class youtrack.Config
+---@field log_level? number
 ---@field url string
 ---@field token string
 ---@field ui? youtrack.ConfigUi
@@ -37,6 +38,9 @@ local M = {}
 
 ---@type youtrack.Config
 M.config = {
+	log_level = vim.log.levels.INFO,
+	url = "",
+	token = "",
 	ui = {
 		border = "single",
 		width = 180,
