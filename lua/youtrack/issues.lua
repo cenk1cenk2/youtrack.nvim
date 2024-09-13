@@ -432,7 +432,7 @@ function M.get_issues(opts)
 
 		local error = renderer:get_component_by_id("error")
 		if error ~= nil then
-			utils.set_component_buffer_content(error, err)
+			utils.set_component_buffer_content(error, err or {})
 		end
 
 		signal.active = "error"
@@ -504,12 +504,12 @@ function M.get_issues(opts)
 
 			local issue_summary = renderer:get_component_by_id("issue_summary")
 			if issue_summary ~= nil then
-				utils.set_component_buffer_content(issue_summary, res.summary, true)
+				utils.set_component_buffer_content(issue_summary, res.summary or {}, true)
 			end
 
 			local issue_description = renderer:get_component_by_id("issue_description")
 			if issue_description ~= nil then
-				utils.set_component_buffer_content(issue_description, res.description, true)
+				utils.set_component_buffer_content(issue_description, res.description or {}, true)
 			end
 
 			local issue_tags = renderer:get_component_by_id("issue_tags")
