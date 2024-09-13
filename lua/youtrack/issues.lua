@@ -609,6 +609,7 @@ function M.get_issues(opts)
 			return n.node(query)
 		end, queries)
 
+		renderer:close()
 		renderer:render(body)
 	end)
 end
