@@ -50,4 +50,16 @@ function M.get_component_buffer_content(component)
 	return vim.api.nvim_buf_get_lines(component.bufnr, 0, -1, false)
 end
 
+---@param bufnr int
+---@return string[] | nil
+function M.get_buffer_content(bufnr)
+	local content = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+
+	if #content == 0 or (#content == 1 and content[1] == "") then
+		return nil
+	end
+
+	return content
+end
+
 return M

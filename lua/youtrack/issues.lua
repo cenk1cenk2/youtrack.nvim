@@ -51,9 +51,15 @@ function M.get_issues(opts)
 		}))
 	end
 
-	for _, name in ipairs({ "error", "issue_summary", "issue_description", "issue_comments", "comment" }) do
-		if not M._.state.buffer[name] or not vim.api.nvim_buf_is_valid(M._.state.buffer[name]) then
-			M._.state.buffer[name] = vim.api.nvim_create_buf(false, false)
+	for _, buffer in ipairs({
+		{ name = "error", scratch = true },
+		{ name = "issue_summary", scratch = false },
+		{ name = "issue_description", scratch = false },
+		{ name = "issue_comments", scratch = true },
+		{ name = "comment", scratch = false },
+	}) do
+		if not M._.state.buffer[buffer.name] or not vim.api.nvim_buf_is_valid(M._.state.buffer[buffer.name]) then
+			M._.state.buffer[buffer.name] = vim.api.nvim_create_buf(false, buffer.scratch)
 		end
 	end
 
@@ -516,7 +522,20 @@ function M.get_issues(opts)
 
 			local issue_summary = renderer:get_component_by_id("issue_summary")
 			if issue_summary ~= nil then
-				utils.set_component_buffer_content(issue_summary, res.summary, true)
+				utils.set_component_buffer_content(
+					issue_summary,
+					utils.get_buffer_content(M._.state.buffer.issue_summary) or res.summary,
+					true
+				)
+			end
+
+			local issue_description = renderer:get_component_by_id("issue_description")
+			if issue_description ~= nil then
+				utils.set_component_buffer_content(
+					issue_description,
+					utils.get_buffer_content(M._.state.buffer.issue_description) or res.description,
+					true
+				)
 			end
 
 			local issue_tags = renderer:get_component_by_id("issue_tags")
@@ -556,20 +575,6 @@ function M.get_issues(opts)
 				else
 					signal_issue.fields = ""
 				end
-			end
-
-			local issue_description = renderer:get_component_by_id("issue_description")
-			if issue_description ~= nil then
-				local description = {}
-
-				if type(res.description) == "string" then
-					local d = vim.split(res.description or "", "\n")
-					if #d > 0 then
-						vim.list_extend(description, d)
-					end
-				end
-
-				utils.set_component_buffer_content(issue_description, description, true)
 			end
 
 			local issue_comments = renderer:get_component_by_id("issue_comments")
