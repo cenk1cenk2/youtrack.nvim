@@ -485,14 +485,14 @@ function M.get_issues(opts)
 
 			local issue_header = renderer:get_component_by_id("issue_header")
 			if issue_header ~= nil then
-				local text = {
+				local line = {
 					n.text(("[%s]"):format(res.project.name), "@class"),
 					n.text(" "),
 					n.text(res.text, "@constant"),
 				}
 
 				signal_issue.header = {
-					n.line(unpack(text)),
+					n.line(unpack(line)),
 				}
 			end
 
@@ -503,15 +503,19 @@ function M.get_issues(opts)
 
 			local issue_tags = renderer:get_component_by_id("issue_tags")
 			if issue_tags ~= nil then
-				local text = {}
+				local lines = {}
 
 				for _, tag in ipairs(res.tags) do
-					table.insert(text, n.text(("(%s)"):format(tag.name), "@tag"))
+					table.insert(lines, { n.text(("(%s)"):format(tag.name), "@tag") })
 				end
 
-				signal_issue.tags = vim.tbl_map(function(line)
-					return n.line(line)
-				end, text)
+				if #lines > 0 then
+					signal_issue.tags = vim.tbl_map(function(line)
+						return n.line(unpack(line))
+					end, lines)
+				else
+					signal_issue.tags = {}
+				end
 			end
 
 			local issue_fields = renderer:get_component_by_id("issue_fields")
@@ -527,10 +531,13 @@ function M.get_issues(opts)
 						n.text("]", "@constant"),
 					})
 				end
-
-				signal_issue.fields = vim.tbl_map(function(line)
-					return n.line(unpack(line))
-				end, lines)
+				if #lines > 0 then
+					signal_issue.fields = vim.tbl_map(function(line)
+						return n.line(unpack(line))
+					end, lines)
+				else
+					signal_issue.fields = {}
+				end
 			end
 
 			local issue_description = renderer:get_component_by_id("issue_description")
