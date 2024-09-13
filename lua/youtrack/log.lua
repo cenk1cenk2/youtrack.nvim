@@ -7,7 +7,7 @@
 ---@class youtrack.Logger: youtrack.LogAtLevel
 ---@field setup youtrack.LoggerSetupFn
 ---@field config youtrack.LoggerConfig
----@field print youtrack.LogAtLevel
+---@field p youtrack.LogAtLevel
 
 ---@class youtrack.LogAtLevel
 ---@field trace fun(...: any): string
@@ -19,10 +19,11 @@
 ---@class youtrack.Logger
 local M = {
 	---@diagnostic disable-next-line: missing-fields
-	print = {},
+	p = {},
 }
 
 ---@class youtrack.LoggerConfig
+---@field level number
 ---@field plugin string
 ---@field modes youtrack.LoggerMode[]
 
@@ -32,7 +33,8 @@ local M = {
 
 ---@type youtrack.LoggerConfig
 M.config = {
-	plugin = "youtrack.nvim",
+	level = vim.log.levels.INFO,
+	plugin = "schema-companion.nvim",
 	modes = {
 		{ name = "trace", level = vim.log.levels.TRACE },
 		{ name = "debug", level = vim.log.levels.DEBUG },
@@ -42,22 +44,23 @@ M.config = {
 	},
 }
 
----@alias youtrack.LoggerSetupFn fun(): youtrack.Logger
+---@class youtrack.LoggerSetup
+---@field level? number
+
+---@alias youtrack.LoggerSetupFn fun(config: youtrack.LoggerSetup): youtrack.Logger
 
 ---@type youtrack.LoggerSetupFn
 function M.setup()
 	local log = function(mode, sprintf, ...)
-		local console
-		if mode.level >= vim.log.levels.INFO then
-			console = string.format("%s", sprintf(...))
-		else
-			local info = debug.getinfo(2, "Sl")
-			local lineinfo = ("%s:%s"):format(info.short_src, info.currentline)
-			console = string.format("[%-5s] [%s]: %s", mode.name:upper(), lineinfo, sprintf(...))
-		end
+		local info = debug.getinfo(2, "Sl")
+		local lineinfo = ("%s:%s"):format(info.short_src, info.currentline)
+
+		local console = string.format("[%-5s] [%s]: %s", mode.name:upper(), lineinfo, sprintf(...))
 
 		for _, line in ipairs(vim.split(console, "\n")) do
-			vim.notify(([[[%s] %s]]):format(M.config.plugin, line), mode.level)
+			if mode.level >= M.config.level then
+				vim.notify(([[[%s] %s]]):format(M.config.plugin, line), mode.level)
+			end
 		end
 	end
 
@@ -78,7 +81,7 @@ function M.setup()
 		end
 
 		---@diagnostic disable-next-line: assign-type-mismatch
-		M.print[mode.name] = function(...)
+		M.p[mode.name] = function(...)
 			return log(mode, function(...)
 				local passed = { ... }
 				local fmt = table.remove(passed, 1)

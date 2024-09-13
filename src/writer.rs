@@ -80,7 +80,7 @@ impl Writer for LuaWriter {
             .unwrap_or_default();
 
         self.log
-            .get::<_, LuaTable>("print")
+            .get::<_, LuaTable>("p")
             .map_err(io::Error::other)?
             .get::<_, LuaFunction>(LogLevel::Level(level).to_string())
             .map_err(io::Error::other)?
