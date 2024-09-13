@@ -42,7 +42,13 @@ function M.get_issues(opts)
 			fields = {},
 			tags = {},
 		})
+
+		M._state.renderer = n.create_renderer(vim.tbl_deep_extend("force", {}, setup.config.ui, {
+			position = "50%",
+			relative = "editor",
+		}))
 	end
+	local renderer = M._.state.renderer
 	local signal = M._.state.signal
 	local signal_queries = M._.state.signal_queries
 	local signal_issues = M._.state.signal_issues
@@ -50,10 +56,6 @@ function M.get_issues(opts)
 
 	local is_tab_active = n.is_active_factory(signal.active)
 
-	local renderer = n.create_renderer(vim.tbl_deep_extend("force", {}, setup.config.ui, {
-		position = "50%",
-		relative = "editor",
-	}))
 	renderer:add_mappings({
 		{
 			mode = { "n" },
