@@ -287,6 +287,10 @@ function M.get_issues(opts)
 						autofocus = false,
 						global_press_key = "<C-s>",
 						on_press = function()
+							if signal_issue.issue == nil then
+								return
+							end
+
 							local description = renderer:get_component_by_id("issue_description")
 							local summary = renderer:get_component_by_id("issue_summary")
 							if description ~= nil and summary ~= nil then
@@ -576,6 +580,12 @@ function M.get_issues(opts)
 	end)
 
 	signal_issue.should_refresh:observe(function(should_refresh)
+		if signal_issue.issue == nil then
+			log.debug("Issue is nil so can not refresh.")
+
+			return
+		end
+
 		if should_refresh then
 			log.debug("Should refresh the given issue: %s", signal_issue.issue:get_value().text)
 			local issue = signal_issues.issue:get_value()
