@@ -10,7 +10,7 @@ local utils = require("youtrack.utils")
 
 ---@class youtrack.GetIssuesOptions
 
----@param opts youtrack.GetIssuesOptions
+---@param opts? youtrack.GetIssuesOptions
 function M.get_issues(opts)
 	opts = opts or {}
 
