@@ -52,7 +52,7 @@ function M.get_issues(opts)
 	end
 
 	for _, name in ipairs({ "error", "issue_summary", "issue_description", "issue_comments", "comment" }) do
-		if M._.state.buffer[name] == nil then
+		if not vim.api.nvim_buf_is_valid(M._.state.buffer[name]) then
 			M._.state.buffer[name] = vim.api.nvim_create_buf(false, true)
 		end
 	end
