@@ -55,12 +55,6 @@ function M.get_issues(opts)
 		end
 	end
 	local renderer = M._.state.renderer
-	local signal = M._.state.signal
-	local signal_queries = M._.state.signal_queries
-	local signal_issues = M._.state.signal_issues
-	local signal_issue = M._.state.signal_issue
-
-	local is_tab_active = n.is_active_factory(signal.active)
 
 	renderer:add_mappings({
 		{
@@ -71,6 +65,19 @@ function M.get_issues(opts)
 			end,
 		},
 	})
+
+	renderer:on_mount(function()
+		M._.state.mounted = true
+	end)
+
+	renderer:on_unmount(function()
+		M._.state.mounted = false
+	end)
+
+	local signal = M._.state.signal
+	local signal_queries = M._.state.signal_queries
+	local signal_issues = M._.state.signal_issues
+	local signal_issue = M._.state.signal_issue
 
 	local body = n.tabs(
 		{ active_tab = signal.active },
@@ -617,8 +624,11 @@ function M.get_issues(opts)
 			return n.node(query)
 		end, queries)
 
-		renderer:close()
-		renderer:render(body)
+		if not M._.state.mounted then
+			renderer:render(body)
+		else
+			renderer:close()
+		end
 	end)
 end
 
