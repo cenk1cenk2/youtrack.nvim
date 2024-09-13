@@ -30,6 +30,8 @@ function M.get_issues(opts)
 		{ name = "comment", scratch = false },
 	}) do
 		M._.buffers[buffer.name] = vim.api.nvim_create_buf(false, buffer.scratch)
+
+		vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = M._.buffers[buffer.name] })
 	end
 
 	local renderer = n.create_renderer(vim.tbl_deep_extend("force", {}, setup.config.ui, {
@@ -53,11 +55,6 @@ function M.get_issues(opts)
 
 	renderer:on_unmount(function()
 		M._.renderer = nil
-
-		for _, bufnr in ipairs(M._.buffers) do
-			vim.api.nvim_set_option_value("scratch", true, { buf = bufnr })
-			vim.api.nvim_buf_delete(bufnr, { force = true })
-		end
 	end)
 
 	local signal = n.create_signal({
