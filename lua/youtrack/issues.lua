@@ -504,12 +504,12 @@ function M.get_issues(opts)
 
 			local issue_summary = renderer:get_component_by_id("issue_summary")
 			if issue_summary ~= nil then
-				utils.set_component_buffer_content(issue_summary, res.summary or {}, true)
+				utils.set_component_buffer_content(issue_summary, res.summary, true)
 			end
 
 			local issue_description = renderer:get_component_by_id("issue_description")
 			if issue_description ~= nil then
-				utils.set_component_buffer_content(issue_description, res.description or {}, true)
+				utils.set_component_buffer_content(issue_description, res.description, true)
 			end
 
 			local issue_tags = renderer:get_component_by_id("issue_tags")

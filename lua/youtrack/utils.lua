@@ -29,8 +29,10 @@ function M.set_component_buffer_content(component, content, modifable)
 	local c
 	if type(content) == "string" then
 		c = vim.fn.split(content, "\n")
-	else
+	elseif type(content) == "table" then
 		c = content
+	else
+		c = { "" }
 	end
 
 	if modifable then
