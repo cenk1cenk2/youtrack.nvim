@@ -162,7 +162,23 @@ function M.get_issues(opts)
 
 						return line
 					end,
-				})
+				}),
+				n.box(
+					{
+						direction = "row",
+						flex = 0,
+						border_style = setup.config.ui.border,
+					},
+					n.button({
+						label = "Close <C-x>",
+						press_key = "<C-x>",
+						autofocus = false,
+						border_style = setup.config.ui.border,
+						on_press = function()
+							renderer:close()
+						end,
+					})
+				)
 			)
 		),
 		n.tab(
@@ -285,7 +301,7 @@ function M.get_issues(opts)
 						label = "Save <C-s>",
 						border_style = setup.config.ui.border,
 						autofocus = false,
-						global_press_key = "<C-s>",
+						press_key = "<C-s>",
 						on_press = function()
 							local description = renderer:get_component_by_id("issue_description")
 							local summary = renderer:get_component_by_id("issue_summary")
@@ -380,7 +396,7 @@ function M.get_issues(opts)
 					n.gap(1),
 					n.button({
 						label = "Refresh <C-r>",
-						global_press_key = "<C-r>",
+						press_key = "<C-r>",
 						autofocus = false,
 						border_style = setup.config.ui.border,
 						on_press = function()
@@ -390,7 +406,7 @@ function M.get_issues(opts)
 					n.gap(1),
 					n.button({
 						label = "Open <C-o>",
-						global_press_key = "<C-o>",
+						press_key = "<C-o>",
 						autofocus = false,
 						border_style = setup.config.ui.border,
 						on_press = function()
@@ -400,20 +416,14 @@ function M.get_issues(opts)
 					n.gap(1),
 					n.button({
 						label = "Close <C-x>",
-						global_press_key = "<C-x>",
+						press_key = "<C-x>",
 						autofocus = false,
 						border_style = setup.config.ui.border,
 						on_press = function()
-							if signal.active:get_value() == "issue" then
-								signal_issue.issue = nil
-								signal_issues.issue = nil
+							signal_issue.issue = nil
+							signal_issues.issue = nil
 
-								signal.active = "issues"
-
-								return
-							end
-
-							renderer:close()
+							signal.active = "issues"
 						end,
 					})
 				)
