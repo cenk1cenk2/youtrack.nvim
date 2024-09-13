@@ -1,7 +1,5 @@
 local M = {
-	_ = {
-		state = nil,
-	},
+	_ = {},
 }
 
 local lib = require("youtrack.lib")
@@ -17,54 +15,10 @@ local utils = require("youtrack.utils")
 function M.get_issues(opts)
 	opts = opts or {}
 
-	if not opts.toggle or not M._.state then
-		M._.state = {
-			buffer = {},
-		}
-
-		M._.state.signal = n.create_signal({
-			active = "issues",
-			error = nil,
-		})
-
-		M._.state.signal_queries = n.create_signal({
-			queries = nil,
-		})
-
-		M._.state.signal_issues = n.create_signal({
-			query = "",
-			issues = {},
-			issue = nil,
-		})
-
-		M._.state.signal_issue = n.create_signal({
-			issue = nil,
-			should_refresh = nil,
-			header = {},
-			fields = {},
-			tags = {},
-			command = "",
-		})
-
-		M._.state.renderer = n.create_renderer(vim.tbl_deep_extend("force", {}, setup.config.ui, {
-			position = "50%",
-			relative = "editor",
-		}))
-	end
-
-	for _, buffer in ipairs({
-		{ name = "error", scratch = true },
-		{ name = "issue_summary", scratch = false },
-		{ name = "issue_description", scratch = false },
-		{ name = "issue_comments", scratch = true },
-		{ name = "comment", scratch = false },
-	}) do
-		if not M._.state.buffer[buffer.name] or not vim.api.nvim_buf_is_valid(M._.state.buffer[buffer.name]) then
-			M._.state.buffer[buffer.name] = vim.api.nvim_create_buf(false, buffer.scratch)
-		end
-	end
-
-	local renderer = M._.state.renderer
+	local renderer = n.create_renderer(vim.tbl_deep_extend("force", {}, setup.config.ui, {
+		position = "50%",
+		relative = "editor",
+	}))
 
 	renderer:add_mappings({
 		{
@@ -77,17 +31,36 @@ function M.get_issues(opts)
 	})
 
 	renderer:on_mount(function()
-		M._.state.mounted = true
+		M._.mounted = true
 	end)
 
 	renderer:on_unmount(function()
-		M._.state.mounted = false
+		M._.mounted = false
 	end)
 
-	local signal = M._.state.signal
-	local signal_queries = M._.state.signal_queries
-	local signal_issues = M._.state.signal_issues
-	local signal_issue = M._.state.signal_issue
+	local signal = n.create_signal({
+		active = "issues",
+		error = nil,
+	})
+
+	local signal_queries = n.create_signal({
+		queries = nil,
+	})
+
+	local signal_issues = n.create_signal({
+		query = "",
+		issues = {},
+		issue = nil,
+	})
+
+	local signal_issue = n.create_signal({
+		issue = nil,
+		should_refresh = nil,
+		header = {},
+		fields = {},
+		tags = {},
+		command = "",
+	})
 
 	local body = n.tabs(
 		{ active_tab = signal.active },
@@ -99,7 +72,7 @@ function M.get_issues(opts)
 					id = "error",
 					border_style = setup.config.ui.border,
 					flex = 1,
-					buf = M._.state.buffer.error,
+					buf = vim.api.nvim_create_buf(false, true),
 					autoscroll = false,
 					border_label = "Error",
 				})
@@ -201,7 +174,7 @@ function M.get_issues(opts)
 						flex = 4,
 						size = 1,
 						id = "issue_summary",
-						buf = M._.state.buffer.issue_summary,
+						buf = vim.api.nvim_create_buf(false, true),
 						autoscroll = false,
 						autofocus = false,
 						filetype = "markdown",
@@ -226,7 +199,7 @@ function M.get_issues(opts)
 							border_label = "Description",
 							flex = 1,
 							id = "issue_description",
-							buf = M._.state.buffer.issue_description,
+							buf = vim.api.nvim_create_buf(false, true),
 							autoscroll = false,
 							autofocus = true,
 							filetype = "markdown",
@@ -240,7 +213,7 @@ function M.get_issues(opts)
 							flex = 2,
 							border_style = setup.config.ui.border,
 							id = "issue_comments",
-							buf = M._.state.buffer.issue_comments,
+							buf = vim.api.nvim_create_buf(false, true),
 							autoscroll = false,
 							autofocus = false,
 							filetype = "markdown",
@@ -249,7 +222,7 @@ function M.get_issues(opts)
 						n.buffer({
 							id = "comment",
 							flex = 1,
-							buf = M._.state.buffer.comment,
+							buf = vim.api.nvim_create_buf(false, true),
 							autoscroll = true,
 							border_style = setup.config.ui.border,
 							border_label = "Comment",
@@ -526,20 +499,12 @@ function M.get_issues(opts)
 
 			local issue_summary = renderer:get_component_by_id("issue_summary")
 			if issue_summary ~= nil then
-				utils.set_component_buffer_content(
-					issue_summary,
-					utils.get_buffer_content(M._.state.buffer.issue_summary) or res.summary,
-					true
-				)
+				utils.set_component_buffer_content(issue_summary, res.summary, true)
 			end
 
 			local issue_description = renderer:get_component_by_id("issue_description")
 			if issue_description ~= nil then
-				utils.set_component_buffer_content(
-					issue_description,
-					utils.get_buffer_content(M._.state.buffer.issue_description) or res.description,
-					true
-				)
+				utils.set_component_buffer_content(issue_description, res.description, true)
 			end
 
 			local issue_tags = renderer:get_component_by_id("issue_tags")
@@ -636,7 +601,7 @@ function M.get_issues(opts)
 			return n.node(query)
 		end, queries)
 
-		if not M._.state.mounted then
+		if not M._.mounted then
 			renderer:render(body)
 		else
 			renderer:close()
