@@ -51,7 +51,7 @@ pub struct Issue {
 
     pub project: Project,
 
-    pub fields: Vec<CustomField>,
+    pub fields: Vec<Field>,
 
     pub tags: Vec<Tag>,
 
@@ -533,7 +533,7 @@ pub async fn add_issue_comment(
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct CustomField {
+pub struct Field {
     pub id: String,
 
     pub name: String,
@@ -573,7 +573,7 @@ fn process_issue(issue: JsonValue) -> Result<Issue, Error> {
             .to_string(),
     };
 
-    let fields = process_custom_fields(
+    let fields = process_fields(
         issue
             .get("customFields")
             .unwrap()
@@ -658,12 +658,12 @@ fn process_issue(issue: JsonValue) -> Result<Issue, Error> {
     Ok(result)
 }
 
-fn process_custom_fields(fields: Vec<JsonValue>) -> Result<Vec<CustomField>, Error> {
+fn process_fields(fields: Vec<JsonValue>) -> Result<Vec<Field>, Error> {
     let mut result = vec![];
 
     fields.iter().for_each(|field| {
         if field["value"].is_null() {
-            result.push(CustomField {
+            result.push(Field {
                 id: field.get("id").unwrap().as_str().unwrap().to_string(),
                 name: field.get("name").unwrap().as_str().unwrap().to_string(),
                 text: "None".to_string(),
@@ -673,7 +673,7 @@ fn process_custom_fields(fields: Vec<JsonValue>) -> Result<Vec<CustomField>, Err
 
             return;
         } else if field["value"].is_array() && field["value"].as_array().unwrap().is_empty() {
-            result.push(CustomField {
+            result.push(Field {
                 id: field.get("id").unwrap().as_str().unwrap().to_string(),
                 name: field.get("name").unwrap().as_str().unwrap().to_string(),
                 text: "[None]".to_string(),
@@ -688,7 +688,7 @@ fn process_custom_fields(fields: Vec<JsonValue>) -> Result<Vec<CustomField>, Err
             "SimpleIssueCustomField" => {
                 let value = field.get("value").unwrap();
 
-                result.push(CustomField {
+                result.push(Field {
                     id: field.get("id").unwrap().as_str().unwrap().to_string(),
                     name: field.get("name").unwrap().as_str().unwrap().to_string(),
                     text: value.to_string(),
@@ -701,7 +701,7 @@ fn process_custom_fields(fields: Vec<JsonValue>) -> Result<Vec<CustomField>, Err
 
                 let date = DateTime::from_timestamp_millis(value).unwrap();
 
-                result.push(CustomField {
+                result.push(Field {
                     id: field.get("id").unwrap().as_str().unwrap().to_string(),
                     name: field.get("name").unwrap().as_str().unwrap().to_string(),
                     text: date.format("%F").to_string(),
@@ -712,7 +712,7 @@ fn process_custom_fields(fields: Vec<JsonValue>) -> Result<Vec<CustomField>, Err
             "PeriodIssueCustomField" => {
                 let value = field.get("value").unwrap().as_object().unwrap();
 
-                result.push(CustomField {
+                result.push(Field {
                     id: field.get("id").unwrap().as_str().unwrap().to_string(),
                     name: field.get("name").unwrap().as_str().unwrap().to_string(),
                     text: value
@@ -731,7 +731,7 @@ fn process_custom_fields(fields: Vec<JsonValue>) -> Result<Vec<CustomField>, Err
                 if value.is_array() {
                     let values = value.as_array().unwrap();
 
-                    result.push(CustomField {
+                    result.push(Field {
                         id: field.get("id").unwrap().as_str().unwrap().to_string(),
                         name: field.get("name").unwrap().as_str().unwrap().to_string(),
                         text: values
@@ -743,7 +743,7 @@ fn process_custom_fields(fields: Vec<JsonValue>) -> Result<Vec<CustomField>, Err
                         values: Some(values.clone()),
                     })
                 } else {
-                    result.push(CustomField {
+                    result.push(Field {
                         id: field.get("id").unwrap().as_str().unwrap().to_string(),
                         name: field.get("name").unwrap().as_str().unwrap().to_string(),
                         text: value.get("name").unwrap().as_str().unwrap().to_string(),
