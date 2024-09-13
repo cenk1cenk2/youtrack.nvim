@@ -206,7 +206,7 @@ function M.get_issues(opts)
 							id = "issue_description",
 							buf = utils.create_buffer(false, true),
 							autoscroll = false,
-							autofocus = true,
+							autofocus = false,
 							filetype = "markdown",
 						})
 					),
@@ -268,7 +268,7 @@ function M.get_issues(opts)
 						border_style = setup.config.ui.border,
 						border_label = "Command",
 						value = signal_issue.command,
-						autofocus = false,
+						autofocus = true,
 						autoresize = false,
 						size = 1,
 						placeholder = "Enter a command to apply to issue...",
