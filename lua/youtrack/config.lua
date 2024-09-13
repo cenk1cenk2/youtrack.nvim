@@ -1,3 +1,5 @@
+local M = {}
+
 ---@class youtrack.Config
 ---@field log_level? number
 ---@field url string
@@ -33,8 +35,6 @@
 ---@field size? youtrack.ConfigUiSize
 
 ---@alias youtrack.ConfigFields table<string>
-
-local M = {}
 
 ---@type youtrack.Config
 local defaults = {
