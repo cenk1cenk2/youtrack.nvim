@@ -56,7 +56,7 @@ function M.get_issues(opts)
 
 		for _, bufnr in ipairs(M._.buffers) do
 			vim.api.nvim_set_option_value("scratch", true, { buf = bufnr })
-			vim.api.nvim_buf_delete(bufnr, { force = true, unload = true })
+			vim.api.nvim_buf_delete(bufnr, { force = true })
 		end
 	end)
 
