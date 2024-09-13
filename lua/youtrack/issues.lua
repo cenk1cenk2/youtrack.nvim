@@ -232,7 +232,7 @@ function M.get_issues(opts)
 						n.buffer({
 							id = "comment",
 							flex = 1,
-							buf = M_.state.buffer.comment,
+							buf = M._.state.buffer.comment,
 							autoscroll = true,
 							border_style = setup.config.ui.border,
 							border_label = "Comment",
