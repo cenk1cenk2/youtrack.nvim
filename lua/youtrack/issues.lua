@@ -53,7 +53,7 @@ function M.get_issues(opts)
 
 	for _, name in ipairs({ "error", "issue_summary", "issue_description", "issue_comments", "comment" }) do
 		if not M._.state.buffer[name] or not vim.api.nvim_buf_is_valid(M._.state.buffer[name]) then
-			M._.state.buffer[name] = vim.api.nvim_create_buf(false, true)
+			M._.state.buffer[name] = vim.api.nvim_create_buf(false, false)
 		end
 	end
 
