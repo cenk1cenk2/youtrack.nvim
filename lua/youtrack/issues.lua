@@ -514,7 +514,7 @@ function M.get_issues(opts)
 						return n.line(unpack(line))
 					end, lines)
 				else
-					signal_issue.tags = {}
+					signal_issue.tags = nil
 				end
 			end
 
@@ -536,7 +536,7 @@ function M.get_issues(opts)
 						return n.line(unpack(line))
 					end, lines)
 				else
-					signal_issue.fields = {}
+					signal_issue.fields = nil
 				end
 			end
 
