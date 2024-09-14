@@ -16,8 +16,8 @@ local M = {}
 ---@field keymap? youtrack.ConfigUIKeymap
 
 ---@class youtrack.ConfigUiSize
----@field width? number | (fun(columns: number): number)
----@field height? number | (fun(lines: number): number)
+---@field width? number | (fun(columns: number): number?)
+---@field height? number | (fun(lines: number): number?)
 
 ---@class youtrack.ConfigUIKeymap
 ---@field close? string
@@ -49,14 +49,14 @@ local defaults = {
 		border = "single",
 		width = function(columns)
 			if columns < 180 then
-				return math.floor(columns * 0.8)
+				return math.floor(columns * 0.95)
 			end
 
 			return 180
 		end,
 		height = function(lines)
 			if lines < 48 then
-				return math.floor(lines * 0.8)
+				return math.floor(lines * 0.95)
 			end
 
 			return 24
@@ -73,36 +73,20 @@ local defaults = {
 	},
 	queries = {},
 	issues = {
-		ui = {
-			width = function(columns)
-				if columns < 180 then
-					return math.floor(columns * 0.8)
-				end
-
-				return 180
-			end,
-			height = function(lines)
-				if lines < 24 then
-					return math.floor(lines * 0.8)
-				end
-
-				return 24
-			end,
-		},
 		fields = {},
 	},
 	issue = {
 		ui = {
 			width = function(columns)
 				if columns < 180 then
-					return math.floor(columns * 0.8)
+					return math.floor(columns * 0.95)
 				end
 
 				return 180
 			end,
 			height = function(lines)
 				if lines < 48 then
-					return math.floor(lines * 0.8)
+					return math.floor(lines * 0.95)
 				end
 
 				return 48

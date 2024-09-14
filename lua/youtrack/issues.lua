@@ -22,10 +22,12 @@ function M.get_issues(opts)
 		return
 	end
 
-	local renderer = n.create_renderer(vim.tbl_deep_extend("force", {}, c.ui, utils.renderer_calculate_size(c.ui), {
+	local ui = vim.tbl_deep_extend("force", {}, utils.calculate_ui(c.ui), {
 		position = "50%",
 		relative = "editor",
-	}))
+	})
+	local renderer = n.create_renderer(ui)
+	local augroup = "youtrack_issues"
 
 	renderer:add_mappings({
 		{
@@ -40,6 +42,8 @@ function M.get_issues(opts)
 	renderer:on_mount(function()
 		M._.renderer = renderer
 
+		utils.attach_resize(augroup, renderer, ui)
+
 		if c.ui.autoclose then
 			utils.attach_autoclose(renderer)
 		end
@@ -47,6 +51,8 @@ function M.get_issues(opts)
 
 	renderer:on_unmount(function()
 		M._.renderer = nil
+
+		pcall(vim.api.nvim_del_augroup_by_name, augroup)
 	end)
 
 	local signal = n.create_signal({
@@ -336,7 +342,7 @@ function M.get_issues(opts)
 							if command and command:get_current_value() ~= nil and command:get_current_value() ~= "" then
 								lib.apply_issue_command(
 									{ id = signal_issue.issue:get_value().id, query = command:get_current_value() },
-									function(err, res)
+									function(err, _)
 										if err then
 											log.p.error(err)
 
@@ -432,7 +438,11 @@ function M.get_issues(opts)
 	)
 
 	signal.active:observe(function(active)
-		renderer:set_size(utils.renderer_calculate_size(c[active].ui))
+		local ui = vim.tbl_deep_extend("force", {}, c.ui, c[active].ui or {})
+
+		renderer:set_size(utils.calculate_ui(ui))
+
+		utils.attach_resize(augroup, renderer, ui)
 	end)
 
 	signal.error:observe(function(err)
