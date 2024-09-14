@@ -16,8 +16,8 @@ local M = {}
 ---@field keymap? youtrack.ConfigUIKeymap
 
 ---@class youtrack.ConfigUiSize
----@field width? number
----@field height? number
+---@field width? number | fun(columns: number): number
+---@field height? number | fun(lines: number): number
 
 ---@class youtrack.ConfigUIKeymap
 ---@field close? string
