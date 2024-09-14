@@ -297,8 +297,8 @@ function M.get_issues(opts)
 								local summary_content = utils.get_component_buffer_content(summary)
 								local description_content = utils.get_component_buffer_content(description)
 
-								local s = vim.fn.join(summary_content, "\n")
-								local d = vim.fn.join(description_content, "\n")
+								local s = vim.fn.join(summary_content or "", "\n")
+								local d = vim.fn.join(description_content or "", "\n")
 
 								if
 									s ~= signal_issue.issue:get_value().summary

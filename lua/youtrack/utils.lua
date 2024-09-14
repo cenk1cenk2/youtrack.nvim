@@ -32,40 +32,6 @@ function M.set_component_value(component, value)
 	return component
 end
 
----
----@param component any
----@param content string | string[]
----@return any
-function M.set_component_buffer_content(component, content)
-	---@type string[]
-	local c
-	if type(content) == "string" then
-		c = vim.fn.split(content, "\n")
-	elseif type(content) == "table" then
-		c = content
-	else
-		c = { "" }
-	end
-
-	if vim.api.nvim_get_option_value("modifiable", { buf = component.bufnr }) then
-		vim.api.nvim_buf_set_lines(component.bufnr, 0, -1, false, c)
-		vim.api.nvim_set_option_value("modified", false, { buf = component.bufnr })
-	else
-		component:modify_buffer_content(function()
-			vim.api.nvim_buf_set_lines(component.bufnr, 0, -1, false, c)
-			vim.api.nvim_set_option_value("modified", false, { buf = component.bufnr })
-		end)
-	end
-
-	return component
-end
-
----@param component any
----@return string[]
-function M.get_component_buffer_content(component)
-	return vim.api.nvim_buf_get_lines(component.bufnr, 0, -1, false)
-end
-
 ---@param bufnr integer
 ---@return string[] | nil
 function M.get_buffer_content(bufnr)
@@ -76,6 +42,43 @@ function M.get_buffer_content(bufnr)
 	end
 
 	return content
+end
+
+---@param component any
+---@return string[] | nil
+function M.get_component_buffer_content(component)
+	return M.get_buffer_content(component.bufnr)
+end
+
+---
+---@param component any
+---@param content string | string[]
+---@return any
+function M.set_component_buffer_content(component, content)
+	if component.bufnr == nil then
+		return component
+	end
+
+	---@type string[]
+	local c
+	if type(content) == "string" then
+		c = vim.fn.split(content, "\n")
+	elseif type(content) == "table" then
+		c = content
+	else
+		c = { "" }
+	end
+
+	local modifiable = vim.api.nvim_get_option_value("modifiable", { buf = component.bufnr })
+	if not modifiable then
+		vim.api.nvim_set_option_value("modifiable", true, { buf = component.bufnr })
+	end
+
+	vim.api.nvim_buf_set_lines(component.bufnr, 0, -1, false, c)
+	vim.api.nvim_set_option_value("modified", false, { buf = component.bufnr })
+	vim.api.nvim_set_option_value("modifiable", modifiable, { buf = component.bufnr })
+
+	return component
 end
 
 return M
