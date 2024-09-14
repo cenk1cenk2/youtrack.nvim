@@ -30,11 +30,11 @@ local M = {}
 
 ---@class youtrack.ConfigIssues
 ---@field fields? table<youtrack.ConfigFields>
----@field size? youtrack.ConfigUiSize
+---@field ui? youtrack.ConfigUiSize
 
 ---@class youtrack.ConfigIssue
 ---@field fields? table<youtrack.ConfigFields>
----@field size? youtrack.ConfigUiSize
+---@field ui? youtrack.ConfigUiSize
 
 ---@alias youtrack.ConfigFields table<string>
 
@@ -60,14 +60,14 @@ local defaults = {
 	},
 	queries = {},
 	issues = {
-		size = {
+		ui = {
 			height = 24,
 			width = 180,
 		},
 		fields = {},
 	},
 	issue = {
-		size = {
+		ui = {
 			height = 48,
 			width = 180,
 		},
