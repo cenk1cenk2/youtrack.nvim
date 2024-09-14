@@ -103,7 +103,9 @@ end
 function M.setup(config)
 	M.options = vim.tbl_deep_extend("force", {}, defaults, config or {})
 
-	M.options.ui.size = calculate_size(M.options.ui.size)
+	calculate_size(M.options.ui.size)
+	calculate_size(M.options.issues.size)
+	calculate_size(M.options.issue.size)
 
 	return M.options
 end
