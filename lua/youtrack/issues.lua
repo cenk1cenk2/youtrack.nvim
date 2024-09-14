@@ -448,7 +448,7 @@ function M.get_issues(opts)
 		signal.active = "error"
 	end)
 
-	signal_issues.query:observe(function(query)
+	signal_issues.query:debounce(c.debounce):observe(function(query)
 		if query == nil then
 			return
 		end
@@ -483,7 +483,7 @@ function M.get_issues(opts)
 				component:set_border_text("bottom", ("matches: %d"):format(#(res or {})), "right")
 			end
 		end)
-	end, c.debounce)
+	end)
 
 	signal_issues.issue:observe(function(issue)
 		if issue == nil then

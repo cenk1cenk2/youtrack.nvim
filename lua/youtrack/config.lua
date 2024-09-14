@@ -81,7 +81,7 @@ M.options = nil
 
 ---@return youtrack.Config
 function M.read()
-	return M.options or defaults
+	return M.options
 end
 
 ---@param config youtrack.Config
