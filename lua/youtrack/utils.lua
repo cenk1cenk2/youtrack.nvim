@@ -81,4 +81,22 @@ function M.set_component_buffer_content(component, content)
 	return component
 end
 
+---@param renderer any
+function M.attach_autoclose(renderer)
+	local popups = renderer._private.flatten_tree
+	for _, popup in pairs(popups) do
+		popup:on("BufLeave", function()
+			vim.schedule(function()
+				local bufnr = vim.api.nvim_get_current_buf()
+				for _, p in pairs(popups) do
+					if p.bufnr == bufnr then
+						return
+					end
+				end
+				renderer:close()
+			end)
+		end)
+	end
+end
+
 return M

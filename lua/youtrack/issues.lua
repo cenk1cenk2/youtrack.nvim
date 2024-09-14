@@ -14,13 +14,15 @@ local utils = require("youtrack.utils")
 function M.get_issues(opts)
 	opts = opts or {}
 
+	local c = config.read()
+
 	if M._.renderer ~= nil then
 		M._.renderer:close()
 
 		return
 	end
 
-	local renderer = n.create_renderer(vim.tbl_deep_extend("force", {}, config.options.ui, {
+	local renderer = n.create_renderer(vim.tbl_deep_extend("force", {}, c.ui, {
 		position = "50%",
 		relative = "editor",
 	}))
@@ -37,6 +39,10 @@ function M.get_issues(opts)
 
 	renderer:on_mount(function()
 		M._.renderer = renderer
+
+		if c.ui.autoclose then
+			utils.attach_autoclose(renderer)
+		end
 	end)
 
 	renderer:on_unmount(function()
@@ -75,7 +81,7 @@ function M.get_issues(opts)
 				{ flex = 1 },
 				n.buffer({
 					id = "error",
-					border_style = config.options.ui.border,
+					border_style = c.ui.border,
 					flex = 1,
 					buf = utils.create_buffer(true, false),
 					autoscroll = false,
@@ -93,7 +99,7 @@ function M.get_issues(opts)
 					autofocus = true,
 					flex = 1,
 					border_label = "Select query",
-					border_style = config.options.ui.border,
+					border_style = c.ui.border,
 					data = signal_queries.queries,
 					on_select = function(node, _)
 						signal_issues.query = node.query
@@ -114,7 +120,7 @@ function M.get_issues(opts)
 				--- text input for query
 				n.text_input({
 					id = "query",
-					border_style = config.options.ui.border,
+					border_style = c.ui.border,
 					autofocus = false,
 					autoresize = false,
 					size = 1,
@@ -132,7 +138,7 @@ function M.get_issues(opts)
 				n.tree({
 					flex = 2,
 					border_label = "Select issue",
-					border_style = config.options.ui.border,
+					border_style = c.ui.border,
 					-- hidden = signal_issues.issues:negate(),
 					data = signal_issues.issues,
 					on_select = function(node, component)
@@ -174,7 +180,7 @@ function M.get_issues(opts)
 				n.columns(
 					{ flex = 0 },
 					n.buffer({
-						border_style = config.options.ui.border,
+						border_style = c.ui.border,
 						border_label = "Summary",
 						flex = 4,
 						size = 1,
@@ -186,7 +192,7 @@ function M.get_issues(opts)
 					}),
 					n.paragraph({
 						id = "issue_header",
-						border_style = config.options.ui.border,
+						border_style = c.ui.border,
 						align = "center",
 						is_focusable = false,
 						flex = 3,
@@ -200,7 +206,7 @@ function M.get_issues(opts)
 					n.rows(
 						{ flex = 4 },
 						n.buffer({
-							border_style = config.options.ui.border,
+							border_style = c.ui.border,
 							border_label = "Description",
 							flex = 1,
 							id = "issue_description",
@@ -216,7 +222,7 @@ function M.get_issues(opts)
 						},
 						n.buffer({
 							flex = 2,
-							border_style = config.options.ui.border,
+							border_style = c.ui.border,
 							id = "issue_comments",
 							buf = utils.create_buffer(false, false),
 							autoscroll = false,
@@ -229,7 +235,7 @@ function M.get_issues(opts)
 							flex = 1,
 							buf = utils.create_buffer(false, true),
 							autoscroll = true,
-							border_style = config.options.ui.border,
+							border_style = c.ui.border,
 							border_label = "Comment",
 							filetype = "markdown",
 						})
@@ -241,7 +247,7 @@ function M.get_issues(opts)
 							id = "issue_fields",
 							is_focusable = false,
 							align = "center",
-							border_style = config.options.ui.border,
+							border_style = c.ui.border,
 							border_label = "Fields",
 							lines = signal_issue.fields,
 						}),
@@ -250,7 +256,7 @@ function M.get_issues(opts)
 							id = "issue_tags",
 							is_focusable = false,
 							align = "center",
-							border_style = config.options.ui.border,
+							border_style = c.ui.border,
 							border_label = "Tags",
 							lines = signal_issue.tags,
 						})
@@ -260,12 +266,12 @@ function M.get_issues(opts)
 					{
 						direction = "row",
 						flex = 0,
-						border_style = config.options.ui.border,
+						border_style = c.ui.border,
 					},
 					n.text_input({
 						flex = 1,
 						id = "command",
-						border_style = config.options.ui.border,
+						border_style = c.ui.border,
 						border_label = "Command",
 						value = signal_issue.command,
 						autofocus = true,
@@ -283,7 +289,7 @@ function M.get_issues(opts)
 					n.gap(1),
 					n.button({
 						label = "Save <C-s>",
-						border_style = config.options.ui.border,
+						border_style = c.ui.border,
 						autofocus = false,
 						global_press_key = "<C-s>",
 						on_press = function()
@@ -386,7 +392,7 @@ function M.get_issues(opts)
 						label = "Refresh <C-r>",
 						global_press_key = "<C-r>",
 						autofocus = false,
-						border_style = config.options.ui.border,
+						border_style = c.ui.border,
 						on_press = function()
 							signal_issue.should_refresh = true
 						end,
@@ -396,9 +402,9 @@ function M.get_issues(opts)
 						label = "Open <C-o>",
 						global_press_key = "<C-o>",
 						autofocus = false,
-						border_style = config.options.ui.border,
+						border_style = c.ui.border,
 						on_press = function()
-							vim.ui.open(("%s/issue/%s"):format(config.options.url, signal_issue.issue:get_value().text))
+							vim.ui.open(("%s/issue/%s"):format(c.url, signal_issue.issue:get_value().text))
 						end,
 					}),
 					n.gap(1),
@@ -406,7 +412,7 @@ function M.get_issues(opts)
 						label = "Close <C-x>",
 						global_press_key = "<C-x>",
 						autofocus = false,
-						border_style = config.options.ui.border,
+						border_style = c.ui.border,
 						on_press = function()
 							if signal.active:get_value() == "issue" then
 								signal_issue.issue = nil
@@ -426,7 +432,7 @@ function M.get_issues(opts)
 	)
 
 	signal.active:observe(function(active)
-		renderer:set_size(config.options[active].size)
+		renderer:set_size(c[active].size)
 	end)
 
 	signal.error:observe(function(err)
@@ -442,7 +448,7 @@ function M.get_issues(opts)
 		signal.active = "error"
 	end)
 
-	signal_issues.query:debounce(500):observe(function(query)
+	signal_issues.query:observe(function(query)
 		if query == nil then
 			return
 		end
@@ -477,7 +483,7 @@ function M.get_issues(opts)
 				component:set_border_text("bottom", ("matches: %d"):format(#(res or {})), "right")
 			end
 		end)
-	end)
+	end, c.debounce)
 
 	signal_issues.issue:observe(function(issue)
 		if issue == nil then
@@ -600,7 +606,7 @@ function M.get_issues(opts)
 	lib.get_saved_queries(nil, function(err, res)
 		local queries = { { name = "Create a new query...", query = "" } }
 
-		vim.list_extend(queries, config.options.queries)
+		vim.list_extend(queries, c.queries)
 
 		if err then
 			log.p.error(err)

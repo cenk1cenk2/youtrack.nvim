@@ -4,12 +4,14 @@ local M = {}
 ---@field log_level? number
 ---@field url string
 ---@field token string
+---@field debounce? number
 ---@field ui? youtrack.ConfigUi
 ---@field queries? string[]
 ---@field issues? youtrack.ConfigIssues
 ---@field issue? youtrack.ConfigIssue
 
 ---@class youtrack.ConfigUi: youtrack.ConfigUiSize
+---@field autoclose? boolean
 ---@field border? 'double' | 'none' | 'rounded' | 'shadow' | 'single' | 'solid'
 ---@field keymap? youtrack.ConfigUIKeymap
 
@@ -41,7 +43,9 @@ local defaults = {
 	log_level = vim.log.levels.INFO,
 	url = "",
 	token = "",
+	debounce = 500,
 	ui = {
+		autoclose = true,
 		border = "single",
 		width = 180,
 		keymap = {
@@ -73,7 +77,12 @@ local defaults = {
 
 ---@type youtrack.Config
 ---@diagnostic disable-next-line: missing-fields
-M.options = {}
+M.options = nil
+
+---@return youtrack.Config
+function M.read()
+	return M.options or defaults
+end
 
 ---@param config youtrack.Config
 ---@return youtrack.Config
