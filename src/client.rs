@@ -15,6 +15,7 @@ static SAVED_QUERY_FIELDS: &str = "id,name,query";
 static ISSUES_FIELDS: &str = "id,idReadable,summary,description,project(id,name,shortName),customFields(id,name,presentation,value(id,name,presentation,color(background,foreground))),tags(id,color(background,foreground),name)";
 static ISSUE_FIELDS: &str = "id,idReadable,summary,description,project(id,name,shortName),customFields(id,name,presentation,value(id,name,presentation,color(background,foreground))),tags(id,color(background,foreground),name),comments(author(fullName),text,created)";
 static PROJECT_FIELDS: &str = "id,name,shortName";
+static AGILES_FIELDS: &str = "id,name,projects(id,name,shortName),sprints(id,name,isDefault)";
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Pagination {
@@ -72,6 +73,26 @@ pub struct Project {
     pub name: String,
 
     pub text: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Agile {
+    pub id: String,
+
+    pub name: String,
+
+    pub projects: Vec<Project>,
+
+    pub sprints: Vec<Sprint>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Sprint {
+    pub id: String,
+
+    pub name: String,
+
+    pub is_default: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -650,6 +671,61 @@ pub async fn get_projects(
     Ok(NoData)
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct GetAgiles {}
+
+into_lua!(GetAgiles);
+from_lua!(GetAgiles);
+
+pub type GetAgilesArgs<'lua> = (Option<GetAgiles>, LuaFunction<'lua>);
+
+#[allow(unused_variables)]
+pub async fn get_agiles(
+    lua: &Lua,
+    m: AppDataRef<'static, Module>,
+    (options, callback): GetAgilesArgs<'_>,
+) -> Result<NoData, Error> {
+    let mut url = m.api_url.clone();
+
+    url.path_segments_mut().unwrap().push("agiles");
+
+    let query: Vec<(&str, JsonValue)> = vec![("fields", JsonValue::String(AGILES_FIELDS.into()))];
+
+    let req = m.client.get(url).query(&query);
+
+    log::debug!("Youtrack agiles request: {:?}", req);
+
+    let res = req.send().await?;
+
+    match res.status() {
+        reqwest::StatusCode::OK => {
+            let json: JsonValue = res.json().await?;
+            let processed = json
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|agile| process_agile(agile.clone()))
+                .collect::<Result<Vec<Agile>, Error>>()?;
+            log::debug!(
+                "Youtrack agiles matching: {:?} -> {:#?}",
+                options.unwrap_or_default(),
+                processed
+            );
+            callback.call((LuaNil, lua.to_value(&processed)))?;
+        }
+        _ => {
+            log::debug!(
+                "Youtrack agiles can not be fetched: {:?} -> {:#?}",
+                options.unwrap_or_default(),
+                res.text().await?
+            );
+            callback.call(("Youtrack agiles can not be fetched.", LuaNil))?;
+        }
+    }
+
+    Ok(NoData)
+}
+
 fn process_saved_query(query: JsonValue) -> Result<SavedQuery, Error> {
     Ok(SavedQuery {
         id: query.get("id").unwrap().as_str().unwrap().to_string(),
@@ -881,5 +957,34 @@ fn process_project(project: JsonValue) -> Result<Project, Error> {
             .unwrap()
             .to_string(),
         text: project.get("name").unwrap().as_str().unwrap().to_string(),
+    })
+}
+
+fn process_agile(agile: JsonValue) -> Result<Agile, Error> {
+    Ok(Agile {
+        id: agile.get("id").unwrap().as_str().unwrap().to_string(),
+        name: agile.get("name").unwrap().as_str().unwrap().to_string(),
+        projects: agile
+            .get("projects")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|project| process_project(project.clone()))
+            .collect::<Result<Vec<Project>, Error>>()?,
+        sprints: agile
+            .get("sprints")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|sprint| {
+                Ok(Sprint {
+                    id: sprint.get("id").unwrap().as_str().unwrap().to_string(),
+                    name: sprint.get("name").unwrap().as_str().unwrap().to_string(),
+                    is_default: sprint.get("isDefault").unwrap().as_bool().unwrap(),
+                })
+            })
+            .collect::<Result<Vec<Sprint>, Error>>()?,
     })
 }

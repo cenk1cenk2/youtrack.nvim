@@ -119,6 +119,10 @@ end
 ---@param ui table
 ---@return table
 function M.calculate_ui(ui)
+	if not ui then
+		return {}
+	end
+
 	local result = vim.deepcopy(ui)
 
 	if type(ui.width) == "number" and ui.width <= 1 and ui.width > 0 then

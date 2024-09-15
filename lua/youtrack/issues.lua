@@ -657,7 +657,7 @@ function M.create_issue(opts)
 		return
 	end
 
-	local ui = vim.tbl_deep_extend("force", {}, utils.calculate_ui(c.ui), {
+	local ui = vim.tbl_deep_extend("force", {}, utils.calculate_ui(c.ui), utils.calculate_ui(c.create_issue.ui), {
 		position = "50%",
 		relative = "editor",
 	})

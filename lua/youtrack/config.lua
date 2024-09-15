@@ -9,6 +9,7 @@ local M = {}
 ---@field queries? string[]
 ---@field issues? youtrack.ConfigIssues
 ---@field issue? youtrack.ConfigIssue
+---@field create_issue? youtrack.ConfigCreateIssue
 
 ---@class youtrack.ConfigUi: youtrack.ConfigUiSize
 ---@field autoclose? boolean
@@ -34,6 +35,9 @@ local M = {}
 
 ---@class youtrack.ConfigIssue
 ---@field fields? table<youtrack.ConfigFields>
+---@field ui? youtrack.ConfigUiSize
+
+---@class youtrack.ConfigCreateIssue
 ---@field ui? youtrack.ConfigUiSize
 
 ---@alias youtrack.ConfigFields table<string>
@@ -94,6 +98,7 @@ local defaults = {
 		},
 		fields = {},
 	},
+	create_issue = {},
 }
 
 ---@type youtrack.Config

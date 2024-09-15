@@ -13,6 +13,7 @@ For the intersection set of handful of people that is using Youtrack and Neovim 
 - Create new issues in Youtrack.
   - Create a new issue in the project and fill the basic data. ![demo](./media/swappy-20240915_155805.png) ![demo](./media/swappy-20240915_155825.png)
   - Drop down to issue detail view to further fill the details. ![demo](./media/swappy-20240915_155833.png)
+- Open and search agile boards. ![demo](./media/swappy-20240915_162015.png)
 
 ## Requirements
 
@@ -139,6 +140,14 @@ Create a new basic issue in the project then list the detail of it.
 
 ```lua
 require("youtrack").create_issue()
+```
+
+### Boards View
+
+List and open a board in the browser.
+
+```lua
+require("youtrack").get_agiles()
 ```
 
 ## References
