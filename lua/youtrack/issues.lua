@@ -65,6 +65,7 @@ function M.get_issues(opts)
 		query = "",
 		issues = {},
 		issue = nil,
+		should_refresh = nil,
 	})
 
 	local signal_issue = n.create_signal({
@@ -453,6 +454,10 @@ function M.get_issues(opts)
 				renderer:set_size(utils.calculate_ui(local_ui))
 
 				utils.attach_resize(augroup, renderer, local_ui)
+
+				if active == "issues" then
+					signal_issues.should_refresh = true
+				end
 			end)
 
 			signal.error:observe(function(err)
@@ -603,6 +608,18 @@ function M.get_issues(opts)
 
 					signal.active = "issue"
 				end)
+			end)
+
+			signal_issues.should_refresh:observe(function(should_refresh)
+				if should_refresh then
+					log.debug("Should refresh the given query: %s", signal_issues.query:get_value())
+					local q = signal_issue.query:get_value()
+					signal_issues.query = nil
+					signal_issues.query = q
+					signal_issues.should_refresh = nil
+
+					log.info("Query refreshed: %s", signal_issues.query:get_value())
+				end
 			end)
 
 			signal_issue.should_refresh:observe(function(should_refresh)
