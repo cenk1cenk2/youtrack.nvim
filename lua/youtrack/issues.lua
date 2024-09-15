@@ -9,7 +9,7 @@ local config = require("youtrack.config")
 local utils = require("youtrack.utils")
 
 ---@class youtrack.GetIssuesOptions
----@field issue? table
+---@field issue? table For passing in from other components to see the issue detail.
 
 ---@param opts? youtrack.GetIssuesOptions
 function M.get_issues(opts)
@@ -68,7 +68,7 @@ function M.get_issues(opts)
 	local signal_issues = n.create_signal({
 		query = "",
 		issues = {},
-		issue = opts.issue and n.node(opts.issue) or nil,
+		issue = nil,
 	})
 
 	local signal_issue = n.create_signal({
@@ -79,6 +79,11 @@ function M.get_issues(opts)
 		tags = {},
 		command = "",
 	})
+
+	if opts.issue then
+		signal.active = "issue"
+		signal_issues.issue = opts.issue
+	end
 
 	local body = n.tabs(
 		{ active_tab = signal.active },
@@ -770,7 +775,7 @@ function M.create_issue(opts)
 							log.info(
 								"Issue created in project: %s -> %s",
 								signal_issue.project:get_value().text,
-								res.id
+								res.text
 							)
 
 							renderer:close()
