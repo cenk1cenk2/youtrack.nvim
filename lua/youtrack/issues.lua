@@ -387,7 +387,9 @@ function M.get_issues(opts)
 
 									log.info("Comment applied to issue: %s", signal_issue.issue:get_value().text)
 
-									utils.set_component_buffer_content(comment, "")
+									vim.schedule(function()
+										utils.set_component_buffer_content(comment, "")
+									end)
 
 									signal_issue.should_refresh = true
 								end)
@@ -480,7 +482,9 @@ function M.get_issues(opts)
 
 			local error = renderer:get_component_by_id("error")
 			if error ~= nil then
-				utils.set_component_buffer_content(error, err or {})
+				vim.schedule(function()
+					utils.set_component_buffer_content(error, err or {})
+				end)
 			end
 
 			signal.active = "error"
@@ -552,12 +556,16 @@ function M.get_issues(opts)
 
 				local issue_summary = renderer:get_component_by_id("issue_summary")
 				if issue_summary ~= nil then
-					utils.set_component_buffer_content(issue_summary, res.summary)
+					vim.schedule(function()
+						utils.set_component_buffer_content(issue_summary, res.summary)
+					end)
 				end
 
 				local issue_description = renderer:get_component_by_id("issue_description")
 				if issue_description ~= nil then
-					utils.set_component_buffer_content(issue_description, res.description)
+					vim.schedule(function()
+						utils.set_component_buffer_content(issue_description, res.description)
+					end)
 				end
 
 				local issue_tags = renderer:get_component_by_id("issue_tags")
@@ -616,7 +624,9 @@ function M.get_issues(opts)
 						)
 					end
 
-					utils.set_component_buffer_content(issue_comments, comments)
+					vim.schedule(function()
+						utils.set_component_buffer_content(issue_comments, comments)
+					end)
 				end
 
 				signal.active = "issue"
