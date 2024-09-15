@@ -128,6 +128,7 @@ function M.get_issues(opts)
 					-- hidden = signal_issues.issues:negate(),
 					data = signal_issues.issues,
 					autofocus = true,
+					autoscroll = false,
 					on_select = function(node, component)
 						signal_issues.issue = node
 						component:get_tree():render()
