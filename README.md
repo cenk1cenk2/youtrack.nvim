@@ -4,11 +4,15 @@ For the intersection set of handful of people that is using Youtrack and Neovim 
 
 ## Features
 
-- Get your saved queries, and modify them realtime to list matching issues. ![demo](./media/swappy-20240914_000532.png) ![demo](./media/swappy-20240914_000634.png)
-- Get issue details, and modify them realtime. ![demo](./media/swappy-20240914_000705.png)
-- View comment on the issue and add new comments. ![demo](./media/swappy-20240914_000730.png)
-- Apply commands to the issue. ![demo](./media/swappy-20240914_000749.png)
-- Open issue in the browser.
+- Get issues from Youtrack, and list them and their details.
+  - Get your saved queries, and modify them realtime to list matching issues. ![demo](./media/swappy-20240914_000532.png) ![demo](./media/swappy-20240914_000634.png)
+  - Get issue details, and modify them realtime. ![demo](./media/swappy-20240914_000705.png)
+  - View comment on the issue and add new comments. ![demo](./media/swappy-20240914_000730.png)
+  - Apply commands to the issue. ![demo](./media/swappy-20240914_000749.png)
+  - Open issue in the browser.
+- Create new issues in Youtrack.
+  - Create a new issue in the project and fill the basic data. ![demo](./media/swappy-20240915_155805.png) ![demo](./media/swappy-20240915_155825.png)
+  - Drop down to issue detail view to further fill the details. ![demo](./media/swappy-20240915_155833.png)
 
 ## Requirements
 
@@ -127,6 +131,14 @@ Lists the saved queries, and allow you to modify them to list the issues. You ca
 
 ```lua
 require("youtrack").get_issues()
+```
+
+### Create Issue View
+
+Create a new basic issue in the project then list the detail of it.
+
+```lua
+require("youtrack").create_issue()
 ```
 
 ## References

@@ -11,6 +11,11 @@ use crate::macros::{from_lua, into_lua};
 use crate::Module;
 use serde_json::{json, Value as JsonValue};
 
+static SAVED_QUERY_FIELDS: &str = "id,name,query";
+static ISSUES_FIELDS: &str = "id,idReadable,summary,description,project(id,name,shortName),customFields(id,name,presentation,value(id,name,presentation,color(background,foreground))),tags(id,color(background,foreground),name)";
+static ISSUE_FIELDS: &str = "id,idReadable,summary,description,project(id,name,shortName),customFields(id,name,presentation,value(id,name,presentation,color(background,foreground))),tags(id,color(background,foreground),name),comments(author(fullName),text,created)";
+static PROJECT_FIELDS: &str = "id,name,shortName";
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Pagination {
     pub skip: Option<i32>,
@@ -65,6 +70,8 @@ pub struct Project {
     pub id: String,
 
     pub name: String,
+
+    pub text: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -83,6 +90,19 @@ pub struct Comment {
     pub text: String,
 
     pub created_at: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Field {
+    pub id: String,
+
+    pub name: String,
+
+    pub text: String,
+
+    pub value: Option<JsonValue>,
+
+    pub values: Option<Vec<JsonValue>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -114,7 +134,7 @@ pub async fn get_saved_queries(
     url.path_segments_mut().unwrap().push("savedQueries");
 
     let query: Vec<(&str, JsonValue)> = vec![
-        ("fields", JsonValue::String("id,name,query".into())),
+        ("fields", JsonValue::String(SAVED_QUERY_FIELDS.into())),
         (
             "$top",
             JsonValue::Number(
@@ -210,13 +230,7 @@ pub async fn get_issues(
     url.path_segments_mut().unwrap().push("issues");
 
     let mut query: Vec<(&str, JsonValue)> = vec![
-        (
-            "fields",
-            JsonValue::String(
-                "id,idReadable,summary,description,project(id,name),customFields(id,name,presentation,value(id,name,presentation,color(background,foreground))),tags(id,color(background,foreground),name)"
-                    .into(),
-            ),
-        ),
+        ("fields", JsonValue::String(ISSUES_FIELDS.into())),
         (
             "query",
             JsonValue::String(
@@ -318,13 +332,7 @@ pub async fn get_issue(
         .push("issues")
         .push(options.clone().id.as_str());
 
-    let query: Vec<(&str, JsonValue)> = vec![(
-        "fields",
-        JsonValue::String(
-            "id,idReadable,summary,description,project(id,name),customFields(id,name,presentation,value(id,name,presentation,color(background,foreground))),tags(id,color(background,foreground),name),comments(author(fullName),text,created)"
-                .into(),
-        ),
-    )];
+    let query: Vec<(&str, JsonValue)> = vec![("fields", JsonValue::String(ISSUE_FIELDS.into()))];
 
     let req = m.client.get(url).query(&query);
 
@@ -357,6 +365,60 @@ pub async fn get_issue(
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CreateIssue {
+    pub project: String,
+    pub summary: String,
+    pub description: Option<String>,
+}
+
+into_lua!(CreateIssue);
+from_lua!(CreateIssue);
+
+pub type CreateIssueArgs<'lua> = (CreateIssue, LuaFunction<'lua>);
+
+#[allow(unused_variables)]
+pub async fn create_issue(
+    lua: &Lua,
+    m: AppDataRef<'static, Module>,
+    (options, callback): CreateIssueArgs<'_>,
+) -> Result<NoData, Error> {
+    let mut url = m.api_url.clone();
+
+    url.path_segments_mut().unwrap().push("issues");
+
+    let query: Vec<(&str, JsonValue)> = vec![("fields", JsonValue::String(ISSUE_FIELDS.into()))];
+
+    let req = m.client.post(url).query(&query).json(&json!({
+        "project": { "id": options.project },
+        "summary": options.summary,
+        "description": options.description
+    }));
+
+    log::debug!("Youtrack issue create request: {:?}", req);
+
+    let res = req.send().await?;
+
+    match res.status() {
+        reqwest::StatusCode::OK => {
+            let json: JsonValue = res.json().await?;
+            let processed = process_issue(json)?;
+            log::debug!("Youtrack issue created: {:?} -> {:#?}", options, processed);
+            callback.call((LuaNil, lua.to_value(&processed)))?;
+        }
+        _ => {
+            log::debug!(
+                "Youtrack issue can not be created: {:?} -> {:#?}",
+                options,
+                res.text().await?
+            );
+            callback.call(("Youtrack issue issue can not be created.", LuaNil))?;
+        }
+    }
+
+    Ok(NoData)
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UpdateIssue {
     pub id: String,
     pub description: Option<String>,
@@ -381,10 +443,7 @@ pub async fn update_issue(
         .push("issues")
         .push(options.clone().id.as_str());
 
-    let query: Vec<(&str, JsonValue)> = vec![(
-        "fields",
-        JsonValue::String("id,idReadable,summary,description".into()),
-    )];
+    let query: Vec<(&str, JsonValue)> = vec![("fields", JsonValue::String(ISSUE_FIELDS.into()))];
 
     let req = m.client.post(url).query(&query).json(&json!({
         "summary": options.summary,
@@ -532,17 +591,63 @@ pub async fn add_issue_comment(
     Ok(NoData)
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Field {
-    pub id: String,
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct GetProjects {}
 
-    pub name: String,
+into_lua!(GetProjects);
+from_lua!(GetProjects);
 
-    pub text: String,
+pub type GetProjectsArgs<'lua> = (Option<GetProjects>, LuaFunction<'lua>);
 
-    pub value: Option<JsonValue>,
+#[allow(unused_variables)]
+pub async fn get_projects(
+    lua: &Lua,
+    m: AppDataRef<'static, Module>,
+    (options, callback): GetProjectsArgs<'_>,
+) -> Result<NoData, Error> {
+    let mut url = m.api_url.clone();
 
-    pub values: Option<Vec<JsonValue>>,
+    url.path_segments_mut()
+        .unwrap()
+        .push("admin")
+        .push("projects");
+
+    let query: Vec<(&str, JsonValue)> = vec![("fields", JsonValue::String(PROJECT_FIELDS.into()))];
+
+    let req = m.client.get(url).query(&query);
+
+    log::debug!("Youtrack projects request: {:?}", req);
+
+    let res = req.send().await?;
+
+    match res.status() {
+        reqwest::StatusCode::OK => {
+            let json: JsonValue = res.json().await?;
+            let processed = json
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|project| process_project(project.clone()))
+                .collect::<Result<Vec<Project>, Error>>()?;
+
+            log::debug!(
+                "Youtrack projects matching: {:?} -> {:#?}",
+                options.unwrap_or_default(),
+                processed
+            );
+            callback.call((LuaNil, lua.to_value(&processed)))?;
+        }
+        _ => {
+            log::debug!(
+                "Youtrack projects can not be fetched: {:?} -> {:#?}",
+                options.unwrap_or_default(),
+                res.text().await?
+            );
+            callback.call(("Youtrack projects can not be fetched.", LuaNil))?;
+        }
+    }
+
+    Ok(NoData)
 }
 
 fn process_saved_query(query: JsonValue) -> Result<SavedQuery, Error> {
@@ -564,6 +669,14 @@ fn process_issue(issue: JsonValue) -> Result<Issue, Error> {
             .unwrap()
             .to_string(),
         name: issue
+            .get("project")
+            .unwrap()
+            .get("shortName")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_string(),
+        text: issue
             .get("project")
             .unwrap()
             .get("name")
@@ -692,7 +805,7 @@ fn process_fields(fields: Vec<JsonValue>) -> Result<Vec<Field>, Error> {
                     id: field.get("id").unwrap().as_str().unwrap().to_string(),
                     name: field.get("name").unwrap().as_str().unwrap().to_string(),
                     text: value.to_string(),
-                    value: None,
+                    value: Some(JsonValue::String(value.as_str().unwrap().to_string())),
                     values: None,
                 })
             }
@@ -705,7 +818,7 @@ fn process_fields(fields: Vec<JsonValue>) -> Result<Vec<Field>, Error> {
                     id: field.get("id").unwrap().as_str().unwrap().to_string(),
                     name: field.get("name").unwrap().as_str().unwrap().to_string(),
                     text: date.format("%F").to_string(),
-                    value: None,
+                    value: Some(JsonValue::Number(value.into())),
                     values: None,
                 })
             }
@@ -756,4 +869,17 @@ fn process_fields(fields: Vec<JsonValue>) -> Result<Vec<Field>, Error> {
     });
 
     Ok(result)
+}
+
+fn process_project(project: JsonValue) -> Result<Project, Error> {
+    Ok(Project {
+        id: project.get("id").unwrap().as_str().unwrap().to_string(),
+        name: project
+            .get("shortName")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_string(),
+        text: project.get("name").unwrap().as_str().unwrap().to_string(),
+    })
 }

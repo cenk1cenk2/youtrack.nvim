@@ -1,5 +1,6 @@
 local M = {
 	get_issues = require("youtrack.issues").get_issues,
+	create_issue = require("youtrack.issues").create_issue,
 }
 
 ---@param config youtrack.Config
