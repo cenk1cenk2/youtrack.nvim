@@ -881,7 +881,7 @@ fn process_fields(fields: Vec<JsonValue>) -> Result<Vec<Field>, Error> {
                     id: field.get("id").unwrap().as_str().unwrap().to_string(),
                     name: field.get("name").unwrap().as_str().unwrap().to_string(),
                     text: value.to_string(),
-                    value: Some(JsonValue::String(value.as_str().unwrap().to_string())),
+                    value: None,
                     values: None,
                 })
             }
