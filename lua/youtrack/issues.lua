@@ -61,10 +61,6 @@ function M.get_issues(opts)
 		error = nil,
 	})
 
-	local signal_queries = n.create_signal({
-		queries = nil,
-	})
-
 	local signal_issues = n.create_signal({
 		query = "",
 		issues = {},
@@ -107,28 +103,6 @@ function M.get_issues(opts)
 			},
 			n.rows(
 				{ flex = 1 },
-				n.tree({
-					autofocus = true,
-					flex = 1,
-					border_label = "Select query",
-					border_style = c.ui.border,
-					data = signal_queries.queries,
-					on_select = function(node, _)
-						signal_issues.query = node.query
-
-						local query = renderer:get_component_by_id("query")
-						if query ~= nil then
-							utils.set_component_value(query, node.query)
-						end
-					end,
-					prepare_node = function(node, line, _)
-						line:append(node.name, "@class")
-						line:append(" ")
-						line:append(node.query, "@comment")
-
-						return line
-					end,
-				}),
 				--- text input for query
 				n.text_input({
 					id = "query",
@@ -153,6 +127,7 @@ function M.get_issues(opts)
 					border_style = c.ui.border,
 					-- hidden = signal_issues.issues:negate(),
 					data = signal_issues.issues,
+					autofocus = true,
 					on_select = function(node, component)
 						signal_issues.issue = node
 						component:get_tree():render()
@@ -459,9 +434,18 @@ function M.get_issues(opts)
 			)
 		end
 
-		signal_queries.queries = vim.tbl_map(function(query)
-			return n.node(query)
-		end, queries)
+		vim.ui.select(queries, {
+			prompt = "Select query",
+			format_item = function(item)
+				return ("%s [%s]"):format(item.name, item.query)
+			end,
+		}, function(query)
+			if query == nil then
+				return
+			end
+
+			signal_issues.query = query.query
+		end)
 
 		renderer:render(body)
 
