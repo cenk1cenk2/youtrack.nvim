@@ -374,7 +374,7 @@ function M.get_issues(opts)
 							end
 
 							local comment = renderer:get_component_by_id("comment")
-							if comment ~= nil and utils.get_component_buffer_content(comment)[1] ~= "" then
+							if comment ~= nil and utils.get_component_buffer_content(comment) then
 								lib.add_issue_comment({
 									id = signal_issue.issue:get_value().id,
 									comment = vim.fn.join(utils.get_component_buffer_content(comment), "\n"),
