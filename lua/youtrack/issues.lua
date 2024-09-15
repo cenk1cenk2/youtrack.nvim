@@ -155,9 +155,6 @@ function M.get_issues(opts)
 
 						return line
 					end,
-					on_mount = function(component)
-						vim.api.nvim_win_set_cursor(component._.container_info.winid, { 1, 0 })
-					end,
 				})
 			)
 		),
