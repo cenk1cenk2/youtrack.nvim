@@ -408,6 +408,8 @@ function M.get_issues(opts)
 
 								signal.active = "issues"
 
+								signal_issues.should_refresh = true
+
 								return
 							end
 
@@ -454,10 +456,6 @@ function M.get_issues(opts)
 				renderer:set_size(utils.calculate_ui(local_ui))
 
 				utils.attach_resize(augroup, renderer, local_ui)
-
-				if active == "issues" then
-					signal_issues.should_refresh = true
-				end
 			end)
 
 			signal.error:observe(function(err)
