@@ -611,7 +611,7 @@ function M.get_issues(opts)
 			signal_issues.should_refresh:observe(function(should_refresh)
 				if should_refresh then
 					log.debug("Should refresh the given query: %s", signal_issues.query:get_value())
-					local q = signal_issue.query:get_value()
+					local q = signal_issues.query:get_value()
 					signal_issues.query = q
 					signal_issues.should_refresh = nil
 
