@@ -108,7 +108,7 @@ function M.get_issues(opts)
 				n.text_input({
 					id = "query",
 					border_style = c.ui.border,
-					autofocus = false,
+					autofocus = true,
 					autoresize = false,
 					size = 1,
 					border_label = "Query",
@@ -128,7 +128,7 @@ function M.get_issues(opts)
 					border_style = c.ui.border,
 					-- hidden = signal_issues.issues:negate(),
 					data = signal_issues.issues,
-					autofocus = true,
+					autofocus = false,
 					on_select = function(node, component)
 						signal_issues.issue = node
 						component:get_tree():render()
