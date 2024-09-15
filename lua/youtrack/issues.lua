@@ -156,7 +156,7 @@ function M.get_issues(opts)
 						return line
 					end,
 					on_mount = function(component)
-						component:get_tree():render()
+						vim.api.nvim_win_set_cursor(component.win_id, { 1, 0 })
 					end,
 				})
 			)
