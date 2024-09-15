@@ -1689,12 +1689,14 @@ name = "youtrack-nvim"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "erased-serde",
  "log",
  "mlua",
  "once_cell",
  "percent-encoding",
  "reqwest",
  "serde",
+ "serde-value",
  "serde_json",
  "structured-logger",
  "tokio",

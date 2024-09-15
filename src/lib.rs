@@ -95,6 +95,8 @@ pub fn youtrack_lib(lua: &'static Lua) -> mlua::Result<LuaTable<'static>> {
         ApplyIssueCommandArgs
     )?;
     export_async_fn!(lua, exports, None, add_issue_comment, AddIssueCommentArgs)?;
+    export_async_fn!(lua, exports, None, get_projects, GetProjectsArgs)?;
+    export_async_fn!(lua, exports, None, create_issue, CreateIssueArgs)?;
 
     Ok(exports)
 }
