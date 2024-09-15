@@ -445,9 +445,8 @@ function M.get_issues(opts)
 			end
 
 			signal_issues.query = query.query
+			renderer:render(body)
 		end)
-
-		renderer:render(body)
 
 		signal.active:observe(function(active)
 			local local_ui = vim.tbl_deep_extend("force", {}, c.ui, c[active].ui or {})
