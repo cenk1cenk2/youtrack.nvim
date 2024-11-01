@@ -6,7 +6,7 @@ local M = {}
 ---@field token string
 ---@field debounce? number
 ---@field ui? youtrack.ConfigUi
----@field queries? string[]
+---@field queries? youtrack.Query[]
 ---@field issues? youtrack.ConfigIssues
 ---@field issue? youtrack.ConfigIssue
 ---@field create_issue? youtrack.ConfigCreateIssue
@@ -41,6 +41,10 @@ local M = {}
 ---@field ui? youtrack.ConfigUiSize
 
 ---@alias youtrack.ConfigFields table<string>
+
+---@class youtrack.Query
+---@field name string
+---@field query string
 
 ---@type youtrack.Config
 local defaults = {
