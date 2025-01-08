@@ -10,6 +10,7 @@ local utils = require("youtrack.utils")
 
 ---@class youtrack.GetIssuesOptions
 ---@field issue? table For passing in from other components to see the issue detail.
+---@field query? string The query to search for issues.
 
 ---@param opts? youtrack.GetIssuesOptions
 function M.get_issues(opts)
@@ -617,6 +618,11 @@ function M.get_issues(opts)
 	if opts.issue then
 		signal.active = "issue"
 		signal_issues.issue = opts.issue
+
+		render()
+	elseif opts.query then
+		signal.active = "issues"
+		signal_issues.query = opts.query
 
 		render()
 	else
