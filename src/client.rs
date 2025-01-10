@@ -27,7 +27,7 @@ impl Default for Pagination {
     fn default() -> Self {
         Pagination {
             skip: Some(0),
-            take: Some(20),
+            take: Some(250),
         }
     }
 }
