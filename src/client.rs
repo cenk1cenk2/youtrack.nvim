@@ -633,7 +633,10 @@ pub async fn get_projects(
         .push("admin")
         .push("projects");
 
-    let query: Vec<(&str, JsonValue)> = vec![("fields", JsonValue::String(PROJECT_FIELDS.into()))];
+    let query: Vec<(&str, JsonValue)> = vec![
+        ("fields", JsonValue::String(PROJECT_FIELDS.into())),
+        ("archived", JsonValue::Bool(false)),
+    ];
 
     let req = m.client.get(url).query(&query);
 
