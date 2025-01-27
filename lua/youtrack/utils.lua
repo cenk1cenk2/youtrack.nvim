@@ -1,11 +1,10 @@
 local M = {}
 
 ---
----@param scratch boolean
 ---@param modifiable boolean
 ---@return integer
-function M.create_buffer(scratch, modifiable)
-	local bufnr = vim.api.nvim_create_buf(false, scratch)
+function M.create_buffer(modifiable)
+	local bufnr = vim.api.nvim_create_buf(false, true)
 
 	-- vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = bufnr })
 	vim.api.nvim_set_option_value("modifiable", modifiable, { buf = bufnr })
