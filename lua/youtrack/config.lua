@@ -70,7 +70,7 @@ local defaults = {
 			return 24
 		end,
 		keymap = {
-			close = "<Esc>",
+			close = "<C-q>",
 			focus_next = "<C-n>",
 			focus_prev = "<C-p>",
 			focus_left = nil,

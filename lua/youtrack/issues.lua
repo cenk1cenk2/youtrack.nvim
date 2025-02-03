@@ -31,16 +31,6 @@ function M.get_issues(opts)
 	local renderer = n.create_renderer(ui)
 	local augroup = "youtrack_issues"
 
-	renderer:add_mappings({
-		{
-			mode = { "n" },
-			key = "q",
-			handler = function()
-				renderer:close()
-			end,
-		},
-	})
-
 	renderer:on_mount(function()
 		M._.renderer = renderer
 
@@ -680,16 +670,6 @@ function M.create_issue(opts)
 	})
 	local renderer = n.create_renderer(ui)
 	local augroup = "youtrack_create_issue"
-
-	renderer:add_mappings({
-		{
-			mode = { "n" },
-			key = "q",
-			handler = function()
-				renderer:close()
-			end,
-		},
-	})
 
 	renderer:on_mount(function()
 		M._.renderer = renderer
