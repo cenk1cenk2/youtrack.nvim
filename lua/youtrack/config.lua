@@ -71,8 +71,8 @@ local defaults = {
 		end,
 		keymap = {
 			close = "<Esc>",
-			focus_next = "<Tab>",
-			focus_prev = "<S-Tab>",
+			focus_next = "<C-n>",
+			focus_prev = "<C-p>",
 			focus_left = nil,
 			focus_right = nil,
 			focus_up = nil,
