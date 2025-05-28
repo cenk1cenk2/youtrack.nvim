@@ -204,6 +204,18 @@ function M.get_issues(opts)
 					}),
 					n.gap(1),
 					n.button({
+						label = "Create <C-c>",
+						global_press_key = "<C-c>",
+						autofocus = false,
+						border_style = c.ui.border,
+						on_press = function()
+							renderer:close()
+
+							M.create_issue()
+						end,
+					}),
+					n.gap(1),
+					n.button({
 						label = "Refresh <C-r>",
 						global_press_key = "<C-r>",
 						autofocus = false,
