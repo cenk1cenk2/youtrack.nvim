@@ -763,6 +763,7 @@ end
 function M.reset_lasts()
 	log.info("Resetting saved state for lasts.")
 
+	vim.g.SHADA_YOUTRACK_NVIM_LAST_QUERY = nil
 	vim.g.SHADA_YOUTRACK_NVIM_LAST_ISSUE = nil
 end
 
