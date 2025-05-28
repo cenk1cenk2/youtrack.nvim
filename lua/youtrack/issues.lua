@@ -270,8 +270,10 @@ end
 function M.get_issue(opts)
 	opts = opts or {}
 
-	if opts.id == nil and M._.last_issue ~= nil then
-		opts.id = M._.last_issue
+	local last_issue = vim.g.SHADA_YOUTRACK_NVIM_LAST_ISSUE
+
+	if opts.id == nil and last_issue ~= nil then
+		opts.id = last_issue
 	end
 
 	if opts.id == nil then
@@ -708,7 +710,7 @@ function M.get_issue(opts)
 	end
 
 	signal_issue.should_refresh = true
-	M._.last_issue = opts.id
+	vim.g.SHADA_YOUTRACK_NVIM_LAST_ISSUE = opts.id
 	render()
 end
 
