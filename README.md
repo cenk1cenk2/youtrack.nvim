@@ -47,8 +47,8 @@ Plugin requires `url` and `token` to be set in the configuration.
 
 ```lua
 require("youtrack").setup({
-  url = vim.env["YOUTRACK_URL"],
-  token = vim.env["YOUTRACK_TOKEN"],
+	url = vim.env["YOUTRACK_URL"],
+	token = vim.env["YOUTRACK_TOKEN"],
 })
 ```
 
@@ -60,8 +60,8 @@ You can add additional queries to your saved ones directly in the `lua` configur
 
 ```lua
 require("youtrack").setup({
-  -- rest of the configuration...
-  queries = { "for: me" }
+	-- rest of the configuration...
+	queries = { "for: me" },
 })
 ```
 
@@ -71,15 +71,15 @@ You can limit custom fields to the view, this will limit the cluter you will see
 
 ```lua
 require("youtrack").setup({
-  -- rest of the configuration...
-  -- to limit the fields in the get issues view
-  issues = {
-    fields = { "State" }
-  },
-  issue = {
-  -- to limit the fields in the get issue detail view
-    fields = { "State", "Subsystem", "Timer" }
-  }
+	-- rest of the configuration...
+	-- to limit the fields in the get issues view
+	issues = {
+		fields = { "State" },
+	},
+	issue = {
+		-- to limit the fields in the get issue detail view
+		fields = { "State", "Subsystem", "Timer" },
+	},
 })
 ```
 
@@ -89,34 +89,34 @@ UI parameters can be passed in to further customize the global keymaps and size 
 
 ```lua
 require("youtrack").setup({
-  -- rest of the configuration...
-  -- global ui configuration
-  ui = {
-    border = "single",
-    width = 180,
-    keymap = {
-      close = "<Esc>",
-      focus_next = "<Tab>",
-      focus_prev = "<S-Tab>",
-      focus_left = "<Left>",
-      focus_right = "<Right>",
-      focus_up = "<Up>",
-      focus_down = "<Down>",
-    },
-  },
-  -- sizing for specific views
-  issues = {
-    size = {
-      height = 24,
-      width = 180,
-    },
-  },
-  issue = {
-    size = {
-      height = 48,
-      width = 180,
-    },
-  },
+	-- rest of the configuration...
+	-- global ui configuration
+	ui = {
+		border = "single",
+		width = 180,
+		keymap = {
+			close = "<Esc>",
+			focus_next = "<Tab>",
+			focus_prev = "<S-Tab>",
+			focus_left = "<Left>",
+			focus_right = "<Right>",
+			focus_up = "<Up>",
+			focus_down = "<Down>",
+		},
+	},
+	-- sizing for specific views
+	issues = {
+		size = {
+			height = 24,
+			width = 180,
+		},
+	},
+	issue = {
+		size = {
+			height = 48,
+			width = 180,
+		},
+	},
 })
 ```
 
@@ -132,6 +132,16 @@ Lists the saved queries, and allow you to modify them to list the issues. You ca
 
 ```lua
 require("youtrack").get_issues()
+```
+
+### Issue View
+
+```lua
+-- get the last open issue
+require("youtrack").get_issues()
+
+-- get a specific issue
+require("youtrack").get_issues({ id = "NVIM-365" })
 ```
 
 ### Create Issue View

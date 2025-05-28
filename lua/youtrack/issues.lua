@@ -6,10 +6,45 @@ local lib = require("youtrack.lib")
 local log = require("youtrack.log")
 local n = require("nui-components")
 local config = require("youtrack.config")
+local layouts = require("youtrack.layouts")
 local utils = require("youtrack.utils")
 
+---@return nil
+function M.get_queries()
+	local c = config.read()
+
+	lib.get_saved_queries(nil, function(e, r)
+		local queries = { { name = "Create a new query...", query = "" } }
+
+		vim.list_extend(queries, c.queries)
+
+		if e then
+			log.p.error(e)
+		else
+			vim.list_extend(
+				queries,
+				vim.tbl_map(function(query)
+					return n.node(query)
+				end, r or {})
+			)
+		end
+
+		vim.ui.select(queries, {
+			prompt = "Select query",
+			format_item = function(item)
+				return ("%s [%s]"):format(item.name, item.query)
+			end,
+		}, function(query)
+			if query == nil then
+				return
+			end
+
+			M.get_issues({ query = query.query })
+		end)
+	end)
+end
+
 ---@class youtrack.GetIssuesOptions
----@field issue? table For passing in from other components to see the issue detail.
 ---@field query? string The query to search for issues.
 
 ---@param opts? youtrack.GetIssuesOptions
@@ -22,6 +57,10 @@ function M.get_issues(opts)
 		M._.renderer:close()
 
 		return
+	end
+
+	if opts.query == nil then
+		return M.get_queries()
 	end
 
 	local ui = vim.tbl_deep_extend("force", {}, utils.calculate_ui(c.ui), {
@@ -59,31 +98,9 @@ function M.get_issues(opts)
 		should_refresh = nil,
 	})
 
-	local signal_issue = n.create_signal({
-		issue = nil,
-		should_refresh = nil,
-		header = {},
-		fields = {},
-		tags = {},
-		command = "",
-	})
-
 	local body = n.tabs(
 		{ active_tab = signal.active },
-		n.tab(
-			{ id = "error" },
-			n.rows(
-				{ flex = 1 },
-				n.buffer({
-					id = "error",
-					border_style = c.ui.border,
-					flex = 1,
-					buf = utils.create_buffer(false),
-					autoscroll = false,
-					border_label = "Error",
-				})
-			)
-		),
+		layouts.error_tab(c),
 		n.tab(
 			{
 				id = "issues",
@@ -117,7 +134,7 @@ function M.get_issues(opts)
 					autofocus = false,
 					on_select = function(node, component)
 						signal_issues.issue = node
-						component:get_tree():render()
+						-- component:get_tree():render()
 					end,
 					prepare_node = function(node, line, _)
 						line:append(("[%s]"):format(node.project.text), "@class")
@@ -144,7 +161,174 @@ function M.get_issues(opts)
 					end,
 				})
 			)
-		),
+		)
+	)
+
+	signal.active = "issues"
+	signal_issues.query = opts.query
+
+	renderer:render(body)
+
+	signal.active:observe(function(active)
+		local local_ui = vim.tbl_deep_extend("force", {}, c.ui, c[active].ui or {})
+
+		renderer:set_size(utils.calculate_ui(local_ui))
+
+		utils.attach_resize(augroup, renderer, local_ui)
+	end)
+
+	signal.error:observe(function(err)
+		if not err then
+			return
+		end
+
+		local error = renderer:get_component_by_id("error")
+		if error ~= nil then
+			utils.set_component_buffer_content(error, err or {})
+		end
+
+		signal.active = "error"
+	end)
+
+	signal_issues.query:debounce(c.debounce):observe(function(query)
+		if query == nil then
+			return
+		end
+
+		local component = renderer:get_component_by_id("query")
+		if component ~= nil then
+			component:set_border_text("bottom", "running...", "right")
+		end
+
+		lib.get_issues({ query = query }, function(err, res)
+			if err then
+				signal_issues.issues = {}
+				signal.error = err
+
+				return
+			end
+
+			if #res == 0 then
+				signal_issues.issues = {}
+				if component ~= nil then
+					component:set_border_text("bottom", "no match", "right")
+				end
+
+				return
+			end
+
+			signal_issues.issues = vim.tbl_map(function(issue)
+				return n.node(issue)
+			end, res or {})
+
+			if component ~= nil then
+				component:set_border_text("bottom", ("matches: %d"):format(#(res or {})), "right")
+			end
+
+			-- TODO: maybe figure out a way to focus the first issue
+			-- local issues_component = renderer:get_component_by_id("issues")
+			-- if issues_component ~= nil then
+			-- end
+		end)
+	end)
+
+	signal_issues.issue:observe(function(issue)
+		if issue == nil then
+			return
+		end
+
+		renderer:close()
+
+		vim.schedule(function()
+			M.get_issue({ id = issue.id })
+		end)
+	end)
+
+	signal_issues.should_refresh:observe(function(should_refresh)
+		if signal_issues.query:get_value() == nil then
+			log.debug("Query nil so can not refresh.")
+
+			return
+		end
+
+		if should_refresh then
+			log.debug("Should refresh the given query: %s", signal_issues.query:get_value())
+			local q = signal_issues.query:get_value()
+			signal_issues.query = nil
+			signal_issues.query = q
+			signal_issues.should_refresh = nil
+
+			log.info("Query refreshed: %s", signal_issues.query:get_value())
+		end
+	end)
+end
+
+---@class youtrack.GetIssueOptions
+---@field id? string For passing in from other components to see the issue detail.
+
+---@param opts youtrack.GetIssueOptions
+function M.get_issue(opts)
+	opts = opts or {}
+
+	if opts.id == nil and M._.last_issue ~= nil then
+		opts.id = M._.last_issue
+	end
+
+	if opts.id == nil then
+		log.error("No issue id has been provided and there is no last window.")
+
+		return
+	end
+
+	local c = config.read()
+
+	if M._.renderer ~= nil then
+		M._.renderer:close()
+
+		return
+	end
+
+	local ui = vim.tbl_deep_extend("force", {}, utils.calculate_ui(c.ui), {
+		position = "50%",
+		relative = "editor",
+	})
+	local renderer = n.create_renderer(ui)
+	local augroup = "youtrack_issue"
+
+	renderer:on_mount(function()
+		M._.renderer = renderer
+
+		utils.attach_resize(augroup, renderer, ui)
+
+		if c.ui.autoclose then
+			utils.attach_autoclose(renderer)
+		end
+	end)
+
+	renderer:on_unmount(function()
+		M._.renderer = nil
+
+		pcall(vim.api.nvim_del_augroup_by_name, augroup)
+	end)
+
+	local signal = n.create_signal({
+		active = "issue",
+		error = nil,
+	})
+
+	local signal_issue = n.create_signal({
+		id = opts.id,
+		issue = nil,
+		should_refresh = nil,
+		header = {},
+		fields = {},
+		tags = {},
+		command = "",
+	})
+
+	local body = n.tabs(
+		{ active_tab = signal.active },
+		layouts.error_tab(c),
 		n.tab(
 			{
 				id = "issue",
@@ -388,17 +572,6 @@ function M.get_issues(opts)
 						autofocus = false,
 						border_style = c.ui.border,
 						on_press = function()
-							if signal.active:get_value() == "issue" then
-								signal_issue.issue = nil
-								signal_issues.issue = nil
-
-								signal.active = "issues"
-
-								signal_issues.should_refresh = true
-
-								return
-							end
-
 							renderer:close()
 						end,
 					})
@@ -431,223 +604,112 @@ function M.get_issues(opts)
 			signal.active = "error"
 		end)
 
-		signal_issues.query:debounce(c.debounce):observe(function(query)
-			if query == nil then
-				return
-			end
+		signal_issue.should_refresh:observe(function(should_refresh)
+			if should_refresh then
+				log.debug("Should refresh the given issue: %s", opts.id)
 
-			local component = renderer:get_component_by_id("query")
-			if component ~= nil then
-				component:set_border_text("bottom", "running...", "right")
-			end
+				lib.get_issue({ id = opts.id }, function(err, res)
+					if err then
+						signal.error = err
 
-			lib.get_issues({ query = query }, function(err, res)
-				if err then
-					signal_issues.issues = {}
-					signal.error = err
-
-					return
-				end
-
-				if #res == 0 then
-					signal_issues.issues = {}
-					if component ~= nil then
-						component:set_border_text("bottom", "no match", "right")
+						return
 					end
 
-					return
-				end
+					signal_issue.issue = res
 
-				signal_issues.issues = vim.tbl_map(function(issue)
-					return n.node(issue)
-				end, res or {})
+					local issue_header = renderer:get_component_by_id("issue_header")
+					if issue_header ~= nil then
+						local line = {
+							n.text(("[%s]"):format(res.project.text), "@class"),
+							n.text(" "),
+							n.text(res.text, "@constant"),
+						}
 
-				if component ~= nil then
-					component:set_border_text("bottom", ("matches: %d"):format(#(res or {})), "right")
-				end
-			end)
-		end)
-
-		signal_issues.issue:observe(function(issue)
-			if issue == nil then
-				return
-			end
-
-			lib.get_issue({ id = issue.id }, function(err, res)
-				if err then
-					signal.error = err
-
-					return
-				end
-
-				signal_issue.issue = res
-
-				local issue_header = renderer:get_component_by_id("issue_header")
-				if issue_header ~= nil then
-					local line = {
-						n.text(("[%s]"):format(res.project.text), "@class"),
-						n.text(" "),
-						n.text(res.text, "@constant"),
-					}
-
-					signal_issue.header = {
-						n.line(unpack(line)),
-					}
-				end
-
-				local issue_summary = renderer:get_component_by_id("issue_summary")
-				if issue_summary ~= nil then
-					utils.set_component_buffer_content(issue_summary, res.summary)
-				end
-
-				local issue_description = renderer:get_component_by_id("issue_description")
-				if issue_description ~= nil then
-					utils.set_component_buffer_content(issue_description, res.description)
-				end
-
-				local issue_tags = renderer:get_component_by_id("issue_tags")
-				if issue_tags ~= nil then
-					local lines = {}
-
-					for _, tag in ipairs(res.tags) do
-						table.insert(lines, { n.text(("(%s)"):format(tag.name), "@tag") })
+						signal_issue.header = {
+							n.line(unpack(line)),
+						}
 					end
 
-					if #lines > 0 then
-						signal_issue.tags = vim.tbl_map(function(line)
-							return n.line(unpack(line))
-						end, lines)
-					else
-						signal_issue.tags = ""
+					local issue_summary = renderer:get_component_by_id("issue_summary")
+					if issue_summary ~= nil then
+						utils.set_component_buffer_content(issue_summary, res.summary)
 					end
-				end
 
-				local issue_fields = renderer:get_component_by_id("issue_fields")
-				if issue_fields ~= nil then
-					local lines = {}
-
-					for _, field in ipairs(res.fields) do
-						table.insert(lines, {
-							n.text("[", "@constant"),
-							n.text(field.name, "@constant"),
-							n.text(": ", "@comment"),
-							n.text(field.text),
-							n.text("]", "@constant"),
-						})
+					local issue_description = renderer:get_component_by_id("issue_description")
+					if issue_description ~= nil then
+						utils.set_component_buffer_content(issue_description, res.description)
 					end
-					if #lines > 0 then
-						signal_issue.fields = vim.tbl_map(function(line)
-							return n.line(unpack(line))
-						end, lines)
-					else
-						signal_issue.fields = ""
-					end
-				end
 
-				local issue_comments = renderer:get_component_by_id("issue_comments")
-				if issue_comments ~= nil then
-					local comments = {}
-					for i, comment in ipairs(res.comments) do
-						if i > 1 then
-							table.insert(comments, "")
+					local issue_tags = renderer:get_component_by_id("issue_tags")
+					if issue_tags ~= nil then
+						local lines = {}
+
+						for _, tag in ipairs(res.tags) do
+							table.insert(lines, { n.text(("(%s)"):format(tag.name), "@tag") })
 						end
 
-						vim.list_extend(
-							comments,
-							vim.list_extend({
-								("# %s - %s"):format(comment.author, comment.created_at),
-								"",
-							}, vim.split(comment.text, "\n"))
-						)
+						if #lines > 0 then
+							signal_issue.tags = vim.tbl_map(function(line)
+								return n.line(unpack(line))
+							end, lines)
+						else
+							signal_issue.tags = ""
+						end
 					end
 
-					utils.set_component_buffer_content(issue_comments, comments)
-				end
+					local issue_fields = renderer:get_component_by_id("issue_fields")
+					if issue_fields ~= nil then
+						local lines = {}
 
-				signal.active = "issue"
-			end)
-		end)
+						for _, field in ipairs(res.fields) do
+							table.insert(lines, {
+								n.text("[", "@constant"),
+								n.text(field.name, "@constant"),
+								n.text(": ", "@comment"),
+								n.text(field.text),
+								n.text("]", "@constant"),
+							})
+						end
+						if #lines > 0 then
+							signal_issue.fields = vim.tbl_map(function(line)
+								return n.line(unpack(line))
+							end, lines)
+						else
+							signal_issue.fields = ""
+						end
+					end
 
-		signal_issues.should_refresh:observe(function(should_refresh)
-			if signal_issues.query:get_value() == nil then
-				log.debug("Query nil so can not refresh.")
+					local issue_comments = renderer:get_component_by_id("issue_comments")
+					if issue_comments ~= nil then
+						local comments = {}
+						for i, comment in ipairs(res.comments) do
+							if i > 1 then
+								table.insert(comments, "")
+							end
 
-				return
-			end
+							vim.list_extend(
+								comments,
+								vim.list_extend({
+									("# %s - %s"):format(comment.author, comment.created_at),
+									"",
+								}, vim.split(comment.text, "\n"))
+							)
+						end
 
-			if should_refresh then
-				log.debug("Should refresh the given query: %s", signal_issues.query:get_value())
-				local q = signal_issues.query:get_value()
-				signal_issues.query = nil
-				signal_issues.query = q
-				signal_issues.should_refresh = nil
+						utils.set_component_buffer_content(issue_comments, comments)
+					end
 
-				log.info("Query refreshed: %s", signal_issues.query:get_value())
-			end
-		end)
+					signal.active = "issue"
+				end)
 
-		signal_issue.should_refresh:observe(function(should_refresh)
-			if signal_issue.issue:get_value() == nil then
-				log.debug("Issue is nil so can not refresh.")
-
-				return
-			end
-
-			if should_refresh then
-				log.debug("Should refresh the given issue: %s", signal_issue.issue:get_value().text)
-				local issue = signal_issues.issue:get_value()
-				signal_issues.issue = nil
-				signal_issues.issue = issue
 				signal_issue.should_refresh = nil
-
-				log.info("Issue refreshed: %s", signal_issue.issue:get_value().text)
 			end
 		end)
 	end
 
-	if opts.issue then
-		signal.active = "issue"
-		signal_issues.issue = opts.issue
-
-		render()
-	elseif opts.query then
-		signal.active = "issues"
-		signal_issues.query = opts.query
-
-		render()
-	else
-		lib.get_saved_queries(nil, function(e, r)
-			local queries = { { name = "Create a new query...", query = "" } }
-
-			vim.list_extend(queries, c.queries)
-
-			if e then
-				log.p.error(e)
-			else
-				vim.list_extend(
-					queries,
-					vim.tbl_map(function(query)
-						return n.node(query)
-					end, r or {})
-				)
-			end
-
-			vim.ui.select(queries, {
-				prompt = "Select query",
-				format_item = function(item)
-					return ("%s [%s]"):format(item.name, item.query)
-				end,
-			}, function(query)
-				if query == nil then
-					return
-				end
-
-				signal_issues.query = query.query
-
-				render()
-			end)
-		end)
-	end
+	signal_issue.should_refresh = true
+	M._.last_issue = opts.id
+	render()
 end
 
 ---@class youtrack.CreateIssueOptions

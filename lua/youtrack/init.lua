@@ -1,6 +1,7 @@
 local M = {
 	get_agiles = require("youtrack.agiles").get_agiles,
 	get_issues = require("youtrack.issues").get_issues,
+	get_issue = require("youtrack.issues").get_issue,
 	create_issue = require("youtrack.issues").create_issue,
 }
 
