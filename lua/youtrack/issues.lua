@@ -144,7 +144,7 @@ function M.get_issues(opts)
 						signal_issues.issue = node
 						-- component:get_tree():render()
 					end,
-					prepare_node = function(node, line, _)
+					prepare_node = function(node, line, component)
 						line:append(("[%s]"):format(node.project.text), "@class")
 						line:append(" ")
 						line:append(node.text, "@function")
@@ -165,6 +165,10 @@ function M.get_issues(opts)
 							line:append("]", "@constant")
 						end
 
+						if node._focused then
+							component:focus()
+						end
+
 						return line
 					end,
 				}),
@@ -174,6 +178,31 @@ function M.get_issues(opts)
 						flex = 0,
 						border_style = c.ui.border,
 					},
+					n.button({
+						label = "Queries <C-s>",
+						global_press_key = "<C-s>",
+						autofocus = false,
+						border_style = c.ui.border,
+						on_press = function()
+							renderer:close()
+
+							M.get_queries()
+						end,
+					}),
+					n.gap(1),
+					n.button({
+						label = "Query <C-f>",
+						global_press_key = "<C-f>",
+						autofocus = false,
+						border_style = c.ui.border,
+						on_press = function()
+							local component = renderer:get_component_by_id("query")
+							if component ~= nil then
+								component:focus()
+							end
+						end,
+					}),
+					n.gap(1),
 					n.button({
 						label = "Refresh <C-r>",
 						global_press_key = "<C-r>",
@@ -259,6 +288,10 @@ function M.get_issues(opts)
 				end
 
 				return
+			end
+
+			if #res > 1 then
+				res[1]._focused = true
 			end
 
 			signal_issues.issues = vim.tbl_map(function(issue)
@@ -490,6 +523,18 @@ function M.get_issue(opts)
 						end,
 						on_mount = function(component)
 							utils.set_component_value(component)
+						end,
+					}),
+					n.gap(1),
+					n.button({
+						label = "Issues <C-f>",
+						global_press_key = "<C-f>",
+						autofocus = false,
+						border_style = c.ui.border,
+						on_press = function()
+							renderer:close()
+
+							M.get_issues()
 						end,
 					}),
 					n.gap(1),
