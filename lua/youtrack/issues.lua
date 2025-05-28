@@ -238,6 +238,8 @@ function M.get_issues(opts)
 			-- if issues_component ~= nil then
 			-- end
 		end)
+
+		vim.g.SHADA_YOUTRACK_NVIM_LAST_QUERY = query
 	end)
 
 	signal_issues.issue:observe(function(issue)
