@@ -951,7 +951,7 @@ function M.create_issue(opts)
 
 							renderer:close()
 
-							M.get_issues({ issue = { id = res.id } })
+							M.get_issue({ id = res.id })
 						end)
 					end
 				end,
