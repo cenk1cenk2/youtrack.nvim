@@ -266,7 +266,7 @@ end
 ---@class youtrack.GetIssueOptions
 ---@field id? string For passing in from other components to see the issue detail.
 
----@param opts youtrack.GetIssueOptions
+---@param opts? youtrack.GetIssueOptions
 function M.get_issue(opts)
 	opts = opts or {}
 
