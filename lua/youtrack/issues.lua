@@ -167,7 +167,43 @@ function M.get_issues(opts)
 
 						return line
 					end,
-				})
+				}),
+				n.box(
+					{
+						direction = "row",
+						flex = 0,
+						border_style = c.ui.border,
+					},
+					n.button({
+						label = "Refresh <C-r>",
+						global_press_key = "<C-r>",
+						autofocus = false,
+						border_style = c.ui.border,
+						on_press = function()
+							signal_issues.should_refresh = true
+						end,
+					}),
+					n.gap(1),
+					n.button({
+						label = "Open <C-o>",
+						global_press_key = "<C-o>",
+						autofocus = false,
+						border_style = c.ui.border,
+						on_press = function()
+							vim.ui.open(("%s/search/?q=%s"):format(c.url, signal_issues.query:get_value()))
+						end,
+					}),
+					n.gap(1),
+					n.button({
+						label = "Close <C-x>",
+						global_press_key = "<C-x>",
+						autofocus = false,
+						border_style = c.ui.border,
+						on_press = function()
+							renderer:close()
+						end,
+					})
+				)
 			)
 		)
 	)
