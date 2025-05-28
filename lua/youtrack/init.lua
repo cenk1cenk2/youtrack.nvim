@@ -1,5 +1,5 @@
 local M = {
-	get_queries = require("youtrack.queries").get_queries,
+	get_queries = require("youtrack.issues").get_queries,
 	get_agiles = require("youtrack.agiles").get_agiles,
 	get_issues = require("youtrack.issues").get_issues,
 	get_issue = require("youtrack.issues").get_issue,
