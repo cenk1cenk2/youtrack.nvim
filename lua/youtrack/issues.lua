@@ -714,6 +714,10 @@ function M.get_issue(opts)
 	render()
 end
 
+function M.reset_last_issue()
+	vim.g.SHADA_YOUTRACK_NVIM_LAST_ISSUE = nil
+end
+
 ---@class youtrack.CreateIssueOptions
 
 ---@param opts? youtrack.CreateIssueOptions

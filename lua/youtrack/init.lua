@@ -1,7 +1,9 @@
 local M = {
+	get_queries = require("youtrack.queries").get_queries,
 	get_agiles = require("youtrack.agiles").get_agiles,
 	get_issues = require("youtrack.issues").get_issues,
 	get_issue = require("youtrack.issues").get_issue,
+	reset_last_issue = require("youtrack.issues").reset_last_issue,
 	create_issue = require("youtrack.issues").create_issue,
 }
 

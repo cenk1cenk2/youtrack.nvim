@@ -126,15 +126,30 @@ This plugin is designed to toggle different views directly.
 
 So you can map the following calls into any keybind.
 
+### Saved Query Selector
+
+Shows the saved queries and with the selected opens the issues view.
+
+```lua
+--- open with saved queries
+require("youtrack").get_queries()
+```
+
 ### Issues View
 
 Lists the saved queries, and allow you to modify them to list the issues. You can open the issue details by pressing `Enter`.
 
 ```lua
+-- open with saved queries same as get_queries
 require("youtrack").get_issues()
+
+-- open a specific issue
+require("youtrack").get_issues({ query = "for: me" })
 ```
 
 ### Issue View
+
+Shows a specific issue details, and allows you to modify the issue, add comments, and apply commands.
 
 ```lua
 -- get the last open issue
@@ -142,6 +157,9 @@ require("youtrack").get_issues()
 
 -- get a specific issue
 require("youtrack").get_issues({ id = "NVIM-365" })
+
+-- reset the saved last issue
+require("youtrack").reset_last_issue()
 ```
 
 ### Create Issue View
@@ -152,7 +170,7 @@ Create a new basic issue in the project then list the detail of it.
 require("youtrack").create_issue()
 ```
 
-### Boards View
+### Board Selector
 
 List and open a board in the browser.
 
