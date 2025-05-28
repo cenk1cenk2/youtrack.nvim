@@ -59,8 +59,16 @@ function M.get_issues(opts)
 		return
 	end
 
+	local last_query = vim.g.SHADA_YOUTRACK_NVIM_LAST_QUERY
+
+	if opts.query == nil and last_query ~= nil then
+		opts.query = last_query
+	end
+
 	if opts.query == nil then
-		return M.get_queries()
+		log.error("No query has been provided and there is no last state.")
+
+		return
 	end
 
 	local ui = vim.tbl_deep_extend("force", {}, utils.calculate_ui(c.ui), {
@@ -714,8 +722,8 @@ function M.get_issue(opts)
 	render()
 end
 
-function M.reset_last_issue()
-	log.info("Resetting last issue.")
+function M.reset_lasts()
+	log.info("Resetting saved state for lasts.")
 
 	vim.g.SHADA_YOUTRACK_NVIM_LAST_ISSUE = nil
 end

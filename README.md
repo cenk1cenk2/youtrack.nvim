@@ -140,7 +140,7 @@ require("youtrack").get_queries()
 Lists the saved queries, and allow you to modify them to list the issues. You can open the issue details by pressing `Enter`.
 
 ```lua
--- open with saved queries same as get_queries
+-- open the issues view with the last query
 require("youtrack").get_issues()
 
 -- open a specific issue
@@ -157,9 +157,6 @@ require("youtrack").get_issues()
 
 -- get a specific issue
 require("youtrack").get_issues({ id = "NVIM-365" })
-
--- reset the saved last issue
-require("youtrack").reset_last_issue()
 ```
 
 ### Create Issue View
@@ -176,6 +173,14 @@ List and open a board in the browser.
 
 ```lua
 require("youtrack").get_agiles()
+```
+
+### Reset Last State
+
+Resets saved state for lasts.
+
+```lua
+require("youtrack").reset_lasts()
 ```
 
 ## References

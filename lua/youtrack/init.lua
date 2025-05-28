@@ -3,7 +3,7 @@ local M = {
 	get_agiles = require("youtrack.agiles").get_agiles,
 	get_issues = require("youtrack.issues").get_issues,
 	get_issue = require("youtrack.issues").get_issue,
-	reset_last_issue = require("youtrack.issues").reset_last_issue,
+	reset_last_issue = require("youtrack.issues").reset_lasts,
 	create_issue = require("youtrack.issues").create_issue,
 }
 
