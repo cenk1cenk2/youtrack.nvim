@@ -208,12 +208,17 @@ pub async fn get_saved_queries(
             callback.call((LuaNil, lua.to_value(&result)))?;
         }
         _ => {
+            let text = res.text().await?;
+
             log::debug!(
                 "Youtrack saved queries can not be fetched: {:?} -> {:#?}",
                 options,
-                res.text().await?
+                text,
             );
-            callback.call(("Youtrack saved queries can not be fetched.", LuaNil))?;
+            callback.call((
+                format!("Youtrack saved queries can not be fetched: {:#?}", text),
+                LuaNil,
+            ))?;
         }
     }
 
@@ -318,12 +323,17 @@ pub async fn get_issues(
             callback.call((LuaNil, lua.to_value(&processed)))?;
         }
         _ => {
+            let text = res.text().await?;
+
             log::debug!(
                 "Youtrack issues can not be fetched: {:?} -> {:#?}",
                 options.unwrap_or_default(),
-                res.text().await?
+                text
             );
-            callback.call(("Youtrack issues can not be fetched.", LuaNil))?;
+            callback.call((
+                format!("Youtrack issues can not be fetched: {:#?}", text),
+                LuaNil,
+            ))?;
         }
     }
 
@@ -370,13 +380,15 @@ pub async fn get_issue(
             callback.call((LuaNil, lua.to_value(&processed)))?;
         }
         _ => {
+            let text = res.text().await?;
+
             log::debug!(
                 "Youtrack issue details can not be fetched: {:?} -> {:#?}",
                 options,
-                res.text().await?
+                text
             );
             callback.call((
-                format!("Youtrack issue details can not be fetched: {}", options.id),
+                format!("Youtrack issue details can not be fetched: {:#?}", text),
                 LuaNil,
             ))?;
         }
@@ -662,12 +674,17 @@ pub async fn get_projects(
             callback.call((LuaNil, lua.to_value(&processed)))?;
         }
         _ => {
+            let text = res.text().await?;
+
             log::debug!(
                 "Youtrack projects can not be fetched: {:?} -> {:#?}",
                 options.unwrap_or_default(),
-                res.text().await?
+                text
             );
-            callback.call(("Youtrack projects can not be fetched.", LuaNil))?;
+            callback.call((
+                format!("Youtrack projects can not be fetched: {:#?}", text),
+                LuaNil,
+            ))?;
         }
     }
 
@@ -717,12 +734,17 @@ pub async fn get_agiles(
             callback.call((LuaNil, lua.to_value(&processed)))?;
         }
         _ => {
+            let text = res.text().await?;
+
             log::debug!(
                 "Youtrack agiles can not be fetched: {:?} -> {:#?}",
                 options.unwrap_or_default(),
-                res.text().await?
+                text
             );
-            callback.call(("Youtrack agiles can not be fetched.", LuaNil))?;
+            callback.call((
+                format!("Youtrack agiles can not be fetched: {:#?}", text),
+                LuaNil,
+            ))?;
         }
     }
 

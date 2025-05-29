@@ -6,7 +6,6 @@ local lib = require("youtrack.lib")
 local log = require("youtrack.log")
 local n = require("nui-components")
 local config = require("youtrack.config")
-local layouts = require("youtrack.layouts")
 local utils = require("youtrack.utils")
 
 ---@class youtrack.GetIssuesOptions
@@ -46,6 +45,8 @@ function M.get_issues(opts)
 	renderer:on_mount(function()
 		M._.renderer = renderer
 
+		renderer:set_size(utils.calculate_ui(vim.tbl_deep_extend("force", {}, c.ui, c.issues.ui or {})))
+
 		utils.attach_resize(augroup, renderer, ui)
 
 		if c.ui.autoclose then
@@ -60,7 +61,6 @@ function M.get_issues(opts)
 	end)
 
 	local signal = n.create_signal({
-		active = "issues",
 		error = nil,
 	})
 
@@ -71,173 +71,149 @@ function M.get_issues(opts)
 		should_refresh = nil,
 	})
 
-	local body = n.tabs(
-		{ active_tab = signal.active },
-		layouts.error_tab(c),
-		n.tab(
+	local body = n.rows(
+		{ flex = 1 },
+		--- text input for query
+		n.text_input({
+			id = "query",
+			border_style = c.ui.border,
+			autofocus = true,
+			autoresize = false,
+			size = 1,
+			border_label = "Query",
+			placeholder = "Enter a youtrack query...",
+			value = signal_issues.query,
+			max_lines = 1,
+			on_mount = function(component)
+				utils.set_component_value(component)
+			end,
+			on_change = function(value, _)
+				signal_issues.query = value
+			end,
+		}),
+		n.tree({
+			flex = 2,
+			border_label = "Select issue",
+			border_style = c.ui.border,
+			-- hidden = signal_issues.issues:negate(),
+			data = signal_issues.issues,
+			autofocus = false,
+			on_select = function(node, component)
+				signal_issues.issue = node
+			end,
+			prepare_node = function(node, line, component)
+				line:append(("[%s]"):format(node.project.text), "@class")
+				line:append(" ")
+				line:append(node.text, "@function")
+				line:append(" ")
+				line:append(node.summary, "@string")
+
+				for _, tag in ipairs(node.tags) do
+					line:append(" ")
+					line:append(("(%s)"):format(tag.name), "@tag")
+				end
+
+				for _, field in ipairs(node.fields) do
+					line:append(" ")
+					line:append("[", "@constant")
+					line:append(field.name, "@constant")
+					line:append(": ", "@comment")
+					line:append(field.text)
+					line:append("]", "@constant")
+				end
+
+				if node._focused then
+					component:focus()
+				end
+
+				return line
+			end,
+		}),
+		n.box(
 			{
-				id = "issues",
+				direction = "row",
+				flex = 0,
+				border_style = c.ui.border,
 			},
-			n.rows(
-				{ flex = 1 },
-				--- text input for query
-				n.text_input({
-					id = "query",
-					border_style = c.ui.border,
-					autofocus = true,
-					autoresize = false,
-					size = 1,
-					border_label = "Query",
-					placeholder = "Enter a youtrack query...",
-					value = signal_issues.query,
-					max_lines = 1,
-					on_mount = function(component)
-						utils.set_component_value(component)
-					end,
-					on_change = function(value, _)
-						signal_issues.query = value
-					end,
-				}),
-				n.tree({
-					flex = 2,
-					border_label = "Select issue",
-					border_style = c.ui.border,
-					-- hidden = signal_issues.issues:negate(),
-					data = signal_issues.issues,
-					autofocus = false,
-					on_select = function(node, component)
-						signal_issues.issue = node
-						-- component:get_tree():render()
-					end,
-					prepare_node = function(node, line, component)
-						line:append(("[%s]"):format(node.project.text), "@class")
-						line:append(" ")
-						line:append(node.text, "@function")
-						line:append(" ")
-						line:append(node.summary, "@string")
+			n.button({
+				label = "Queries <C-s>",
+				global_press_key = "<C-s>",
+				autofocus = false,
+				border_style = c.ui.border,
+				on_press = function()
+					renderer:close()
 
-						for _, tag in ipairs(node.tags) do
-							line:append(" ")
-							line:append(("(%s)"):format(tag.name), "@tag")
-						end
+					require("youtrack.queries").get_queries()
+				end,
+			}),
+			n.gap(1),
+			n.button({
+				label = "Query <C-f>",
+				global_press_key = "<C-f>",
+				autofocus = false,
+				border_style = c.ui.border,
+				on_press = function()
+					local component = renderer:get_component_by_id("query")
+					if component ~= nil then
+						component:focus()
+					end
+				end,
+			}),
+			n.gap(1),
+			n.button({
+				label = "Create <C-c>",
+				global_press_key = "<C-c>",
+				autofocus = false,
+				border_style = c.ui.border,
+				on_press = function()
+					renderer:close()
 
-						for _, field in ipairs(node.fields) do
-							line:append(" ")
-							line:append("[", "@constant")
-							line:append(field.name, "@constant")
-							line:append(": ", "@comment")
-							line:append(field.text)
-							line:append("]", "@constant")
-						end
-
-						if node._focused then
-							component:focus()
-						end
-
-						return line
-					end,
-				}),
-				n.box(
-					{
-						direction = "row",
-						flex = 0,
-						border_style = c.ui.border,
-					},
-					n.button({
-						label = "Queries <C-s>",
-						global_press_key = "<C-s>",
-						autofocus = false,
-						border_style = c.ui.border,
-						on_press = function()
-							renderer:close()
-
-							require("youtrack.queries").get_queries()
-						end,
-					}),
-					n.gap(1),
-					n.button({
-						label = "Query <C-f>",
-						global_press_key = "<C-f>",
-						autofocus = false,
-						border_style = c.ui.border,
-						on_press = function()
-							local component = renderer:get_component_by_id("query")
-							if component ~= nil then
-								component:focus()
-							end
-						end,
-					}),
-					n.gap(1),
-					n.button({
-						label = "Create <C-c>",
-						global_press_key = "<C-c>",
-						autofocus = false,
-						border_style = c.ui.border,
-						on_press = function()
-							renderer:close()
-
-							M.create_issue()
-						end,
-					}),
-					n.gap(1),
-					n.button({
-						label = "Refresh <C-r>",
-						global_press_key = "<C-r>",
-						autofocus = false,
-						border_style = c.ui.border,
-						on_press = function()
-							signal_issues.should_refresh = true
-						end,
-					}),
-					n.gap(1),
-					n.button({
-						label = "Open <C-o>",
-						global_press_key = "<C-o>",
-						autofocus = false,
-						border_style = c.ui.border,
-						on_press = function()
-							vim.ui.open(("%s/search/?q=%s"):format(c.url, signal_issues.query:get_value()))
-						end,
-					}),
-					n.gap(1),
-					n.button({
-						label = "Close <C-x>",
-						global_press_key = "<C-x>",
-						autofocus = false,
-						border_style = c.ui.border,
-						on_press = function()
-							renderer:close()
-						end,
-					})
-				)
-			)
+					M.create_issue()
+				end,
+			}),
+			n.gap(1),
+			n.button({
+				label = "Refresh <C-r>",
+				global_press_key = "<C-r>",
+				autofocus = false,
+				border_style = c.ui.border,
+				on_press = function()
+					signal_issues.should_refresh = true
+				end,
+			}),
+			n.gap(1),
+			n.button({
+				label = "Open <C-o>",
+				global_press_key = "<C-o>",
+				autofocus = false,
+				border_style = c.ui.border,
+				on_press = function()
+					vim.ui.open(("%s/search/?q=%s"):format(c.url, signal_issues.query:get_value()))
+				end,
+			}),
+			n.gap(1),
+			n.button({
+				label = "Close <C-x>",
+				global_press_key = "<C-x>",
+				autofocus = false,
+				border_style = c.ui.border,
+				on_press = function()
+					renderer:close()
+				end,
+			})
 		)
 	)
 
-	signal.active = "issues"
 	signal_issues.query = opts.query
 
 	renderer:render(body)
-
-	signal.active:observe(function(active)
-		local local_ui = vim.tbl_deep_extend("force", {}, c.ui, c[active].ui or {})
-
-		renderer:set_size(utils.calculate_ui(local_ui))
-
-		utils.attach_resize(augroup, renderer, local_ui)
-	end)
 
 	signal.error:observe(function(err)
 		if not err then
 			return
 		end
 
-		local error = renderer:get_component_by_id("error")
-		if error ~= nil then
-			utils.set_component_buffer_content(error, err or {})
-		end
-
-		signal.active = "error"
+		log.error(err)
 	end)
 
 	signal_issues.query:debounce(c.debounce):observe(function(query)
@@ -354,6 +330,8 @@ function M.get_issue(opts)
 	renderer:on_mount(function()
 		M._.renderer = renderer
 
+		renderer:set_size(utils.calculate_ui(vim.tbl_deep_extend("force", {}, c.ui, c.issue.ui or {})))
+
 		utils.attach_resize(augroup, renderer, ui)
 
 		if c.ui.autoclose then
@@ -368,7 +346,6 @@ function M.get_issue(opts)
 	end)
 
 	local signal = n.create_signal({
-		active = "issue",
 		error = nil,
 	})
 
@@ -382,294 +359,266 @@ function M.get_issue(opts)
 		command = "",
 	})
 
-	local body = n.tabs(
-		{ active_tab = signal.active },
-		layouts.error_tab(c),
-		n.tab(
-			{
-				id = "issue",
-			},
+	local body = n.rows(
+		{ flex = 1 },
+		n.columns(
+			{ flex = 0 },
+			n.buffer({
+				border_style = c.ui.border,
+				border_label = "Summary",
+				flex = 4,
+				size = 1,
+				id = "issue_summary",
+				buf = utils.create_buffer(true),
+				autoscroll = false,
+				autofocus = false,
+				filetype = "markdown",
+			}),
+			n.paragraph({
+				id = "issue_header",
+				border_style = c.ui.border,
+				align = "center",
+				is_focusable = false,
+				flex = 3,
+				size = 1,
+				border_label = "Issue",
+				lines = signal_issue.header,
+			})
+		),
+		n.columns(
+			{ flex = 1 },
+			n.rows(
+				{ flex = 4 },
+				n.buffer({
+					border_style = c.ui.border,
+					border_label = "Description",
+					flex = 1,
+					id = "issue_description",
+					buf = utils.create_buffer(true),
+					autoscroll = false,
+					autofocus = false,
+					filetype = "markdown",
+				})
+			),
+			n.rows(
+				{
+					flex = 2,
+				},
+				n.buffer({
+					flex = 2,
+					border_style = c.ui.border,
+					id = "issue_comments",
+					buf = utils.create_buffer(false),
+					autoscroll = false,
+					autofocus = false,
+					filetype = "markdown",
+					border_label = "Comments",
+				}),
+				n.buffer({
+					id = "comment",
+					flex = 1,
+					buf = utils.create_buffer(true),
+					autoscroll = true,
+					border_style = c.ui.border,
+					border_label = "Comment",
+					filetype = "markdown",
+				})
+			),
 			n.rows(
 				{ flex = 1 },
-				n.columns(
-					{ flex = 0 },
-					n.buffer({
-						border_style = c.ui.border,
-						border_label = "Summary",
-						flex = 4,
-						size = 1,
-						id = "issue_summary",
-						buf = utils.create_buffer(true),
-						autoscroll = false,
-						autofocus = false,
-						filetype = "markdown",
-					}),
-					n.paragraph({
-						id = "issue_header",
-						border_style = c.ui.border,
-						align = "center",
-						is_focusable = false,
-						flex = 3,
-						size = 1,
-						border_label = "Issue",
-						lines = signal_issue.header,
-					})
-				),
-				n.columns(
-					{ flex = 1 },
-					n.rows(
-						{ flex = 4 },
-						n.buffer({
-							border_style = c.ui.border,
-							border_label = "Description",
-							flex = 1,
-							id = "issue_description",
-							buf = utils.create_buffer(true),
-							autoscroll = false,
-							autofocus = false,
-							filetype = "markdown",
-						})
-					),
-					n.rows(
-						{
-							flex = 2,
-						},
-						n.buffer({
-							flex = 2,
-							border_style = c.ui.border,
-							id = "issue_comments",
-							buf = utils.create_buffer(false),
-							autoscroll = false,
-							autofocus = false,
-							filetype = "markdown",
-							border_label = "Comments",
-						}),
-						n.buffer({
-							id = "comment",
-							flex = 1,
-							buf = utils.create_buffer(true),
-							autoscroll = true,
-							border_style = c.ui.border,
-							border_label = "Comment",
-							filetype = "markdown",
-						})
-					),
-					n.rows(
-						{ flex = 1 },
-						n.paragraph({
-							flex = 2,
-							id = "issue_fields",
-							is_focusable = false,
-							align = "center",
-							border_style = c.ui.border,
-							border_label = "Fields",
-							lines = signal_issue.fields,
-						}),
-						n.paragraph({
-							flex = 1,
-							id = "issue_tags",
-							is_focusable = false,
-							align = "center",
-							border_style = c.ui.border,
-							border_label = "Tags",
-							lines = signal_issue.tags,
-						})
-					)
-				),
-				n.box(
-					{
-						direction = "row",
-						flex = 0,
-						border_style = c.ui.border,
-					},
-					n.text_input({
-						flex = 1,
-						id = "command",
-						border_style = c.ui.border,
-						border_label = "Command",
-						value = signal_issue.command,
-						autofocus = true,
-						autoresize = false,
-						size = 1,
-						placeholder = "Enter a command to apply to issue...",
-						max_lines = 1,
-						on_change = function(value, _)
-							signal_issue.command = value
-						end,
-						on_mount = function(component)
-							utils.set_component_value(component)
-						end,
-					}),
-					n.gap(1),
-					n.button({
-						label = "Issues <C-f>",
-						global_press_key = "<C-f>",
-						autofocus = false,
-						border_style = c.ui.border,
-						on_press = function()
-							renderer:close()
+				n.paragraph({
+					flex = 2,
+					id = "issue_fields",
+					is_focusable = false,
+					align = "center",
+					border_style = c.ui.border,
+					border_label = "Fields",
+					lines = signal_issue.fields,
+				}),
+				n.paragraph({
+					flex = 1,
+					id = "issue_tags",
+					is_focusable = false,
+					align = "center",
+					border_style = c.ui.border,
+					border_label = "Tags",
+					lines = signal_issue.tags,
+				})
+			)
+		),
+		n.box(
+			{
+				direction = "row",
+				flex = 0,
+				border_style = c.ui.border,
+			},
+			n.text_input({
+				flex = 1,
+				id = "command",
+				border_style = c.ui.border,
+				border_label = "Command",
+				value = signal_issue.command,
+				autofocus = true,
+				autoresize = false,
+				size = 1,
+				placeholder = "Enter a command to apply to issue...",
+				max_lines = 1,
+				on_change = function(value, _)
+					signal_issue.command = value
+				end,
+				on_mount = function(component)
+					utils.set_component_value(component)
+				end,
+			}),
+			n.gap(1),
+			n.button({
+				label = "Issues <C-f>",
+				global_press_key = "<C-f>",
+				autofocus = false,
+				border_style = c.ui.border,
+				on_press = function()
+					renderer:close()
 
-							M.get_issues()
-						end,
-					}),
-					n.gap(1),
-					n.button({
-						label = "Save <C-s>",
-						border_style = c.ui.border,
-						autofocus = false,
-						global_press_key = "<C-s>",
-						on_press = function()
-							if signal_issue.issue:get_value() == nil then
+					M.get_issues()
+				end,
+			}),
+			n.gap(1),
+			n.button({
+				label = "Save <C-s>",
+				border_style = c.ui.border,
+				autofocus = false,
+				global_press_key = "<C-s>",
+				on_press = function()
+					if signal_issue.issue:get_value() == nil then
+						return
+					end
+
+					local description = renderer:get_component_by_id("issue_description")
+					local summary = renderer:get_component_by_id("issue_summary")
+					if description ~= nil and summary ~= nil then
+						local summary_content = utils.get_component_buffer_content(summary)
+						local description_content = utils.get_component_buffer_content(description)
+
+						local s = vim.fn.join(summary_content or {}, "\n")
+						local d = vim.fn.join(description_content or {}, "\n")
+
+						if
+							s ~= signal_issue.issue:get_value().summary
+							or d ~= signal_issue.issue:get_value().description
+						then
+							lib.update_issue({
+								id = signal_issue.issue:get_value().id,
+								summary = s,
+								description = d,
+							}, function(err, _)
+								if err then
+									log.p.error(err)
+
+									return
+								end
+
+								log.info("Issue updated: %s", signal_issue.issue:get_value().text)
+
+								signal_issue.should_refresh = true
+							end)
+						else
+							log.debug("Nothing changed for the issue: %s", signal_issue.issue:get_value().text)
+						end
+					else
+						log.debug("No need to update for the issue: %s", signal_issue.issue:get_value().text)
+					end
+
+					local command = renderer:get_component_by_id("command")
+					if command and command:get_current_value() ~= nil and command:get_current_value() ~= "" then
+						lib.apply_issue_command(
+							{ id = signal_issue.issue:get_value().id, query = command:get_current_value() },
+							function(err, _)
+								if err then
+									log.p.error(err)
+
+									return
+								end
+
+								log.info(
+									"Command applied to issue: %s -> %s",
+									signal_issue.issue:get_value().text,
+									command:get_current_value()
+								)
+
+								utils.set_component_buffer_content(command, nil)
+
+								signal_issue.should_refresh = true
+							end
+						)
+					else
+						log.debug("No command to be applied for the issue: %s", signal_issue.issue:get_value().text)
+					end
+
+					local comment = renderer:get_component_by_id("comment")
+					if comment ~= nil and utils.get_component_buffer_content(comment) then
+						lib.add_issue_comment({
+							id = signal_issue.issue:get_value().id,
+							comment = vim.fn.join(utils.get_component_buffer_content(comment), "\n"),
+						}, function(err, _)
+							if err then
+								log.p.error(err)
+
 								return
 							end
 
-							local description = renderer:get_component_by_id("issue_description")
-							local summary = renderer:get_component_by_id("issue_summary")
-							if description ~= nil and summary ~= nil then
-								local summary_content = utils.get_component_buffer_content(summary)
-								local description_content = utils.get_component_buffer_content(description)
+							log.info("Comment applied to issue: %s", signal_issue.issue:get_value().text)
 
-								local s = vim.fn.join(summary_content or {}, "\n")
-								local d = vim.fn.join(description_content or {}, "\n")
+							utils.set_component_buffer_content(comment, nil)
 
-								if
-									s ~= signal_issue.issue:get_value().summary
-									or d ~= signal_issue.issue:get_value().description
-								then
-									lib.update_issue({
-										id = signal_issue.issue:get_value().id,
-										summary = s,
-										description = d,
-									}, function(err, _)
-										if err then
-											log.p.error(err)
-
-											return
-										end
-
-										log.info("Issue updated: %s", signal_issue.issue:get_value().text)
-
-										signal_issue.should_refresh = true
-									end)
-								else
-									log.debug("Nothing changed for the issue: %s", signal_issue.issue:get_value().text)
-								end
-							else
-								log.debug("No need to update for the issue: %s", signal_issue.issue:get_value().text)
-							end
-
-							local command = renderer:get_component_by_id("command")
-							if command and command:get_current_value() ~= nil and command:get_current_value() ~= "" then
-								lib.apply_issue_command(
-									{ id = signal_issue.issue:get_value().id, query = command:get_current_value() },
-									function(err, _)
-										if err then
-											log.p.error(err)
-
-											return
-										end
-
-										log.info(
-											"Command applied to issue: %s -> %s",
-											signal_issue.issue:get_value().text,
-											command:get_current_value()
-										)
-
-										utils.set_component_buffer_content(command, nil)
-
-										signal_issue.should_refresh = true
-									end
-								)
-							else
-								log.debug(
-									"No command to be applied for the issue: %s",
-									signal_issue.issue:get_value().text
-								)
-							end
-
-							local comment = renderer:get_component_by_id("comment")
-							if comment ~= nil and utils.get_component_buffer_content(comment) then
-								lib.add_issue_comment({
-									id = signal_issue.issue:get_value().id,
-									comment = vim.fn.join(utils.get_component_buffer_content(comment), "\n"),
-								}, function(err, _)
-									if err then
-										log.p.error(err)
-
-										return
-									end
-
-									log.info("Comment applied to issue: %s", signal_issue.issue:get_value().text)
-
-									utils.set_component_buffer_content(comment, nil)
-
-									signal_issue.should_refresh = true
-								end)
-							else
-								log.debug(
-									"No comment to be applied for the issue: %s",
-									signal_issue.issue:get_value().text
-								)
-							end
-						end,
-					}),
-					n.gap(1),
-					n.button({
-						label = "Refresh <C-r>",
-						global_press_key = "<C-r>",
-						autofocus = false,
-						border_style = c.ui.border,
-						on_press = function()
 							signal_issue.should_refresh = true
-						end,
-					}),
-					n.gap(1),
-					n.button({
-						label = "Open <C-o>",
-						global_press_key = "<C-o>",
-						autofocus = false,
-						border_style = c.ui.border,
-						on_press = function()
-							vim.ui.open(("%s/issue/%s"):format(c.url, signal_issue.issue:get_value().text))
-						end,
-					}),
-					n.gap(1),
-					n.button({
-						label = "Close <C-x>",
-						global_press_key = "<C-x>",
-						autofocus = false,
-						border_style = c.ui.border,
-						on_press = function()
-							renderer:close()
-						end,
-					})
-				)
-			)
+						end)
+					else
+						log.debug("No comment to be applied for the issue: %s", signal_issue.issue:get_value().text)
+					end
+				end,
+			}),
+			n.gap(1),
+			n.button({
+				label = "Refresh <C-r>",
+				global_press_key = "<C-r>",
+				autofocus = false,
+				border_style = c.ui.border,
+				on_press = function()
+					signal_issue.should_refresh = true
+				end,
+			}),
+			n.gap(1),
+			n.button({
+				label = "Open <C-o>",
+				global_press_key = "<C-o>",
+				autofocus = false,
+				border_style = c.ui.border,
+				on_press = function()
+					vim.ui.open(("%s/issue/%s"):format(c.url, signal_issue.issue:get_value().text))
+				end,
+			}),
+			n.gap(1),
+			n.button({
+				label = "Close <C-x>",
+				global_press_key = "<C-x>",
+				autofocus = false,
+				border_style = c.ui.border,
+				on_press = function()
+					renderer:close()
+				end,
+			})
 		)
 	)
 
 	local render = function()
 		renderer:render(body)
 
-		signal.active:observe(function(active)
-			local local_ui = vim.tbl_deep_extend("force", {}, c.ui, c[active].ui or {})
-
-			renderer:set_size(utils.calculate_ui(local_ui))
-
-			utils.attach_resize(augroup, renderer, local_ui)
-		end)
-
 		signal.error:observe(function(err)
 			if not err then
 				return
 			end
 
-			local error = renderer:get_component_by_id("error")
-			if error ~= nil then
-				utils.set_component_buffer_content(error, err or {})
-			end
-
-			signal.active = "error"
+			log.error(err)
 		end)
 
 		signal_issue.should_refresh:observe(function(should_refresh)
@@ -775,7 +724,7 @@ function M.get_issue(opts)
 					end
 
 					if issue_header ~= nil then
-						issue_header:set_border_text("bottom", "done.", "right")
+						issue_header:set_border_text("bottom", nil, "right")
 					end
 					signal.active = "issue"
 				end)
