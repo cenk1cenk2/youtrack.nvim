@@ -1,5 +1,5 @@
 local M = {
-	_ = {},
+	_ = require("youtrack")._,
 }
 
 local lib = require("youtrack.lib")
@@ -8,41 +8,6 @@ local n = require("nui-components")
 local config = require("youtrack.config")
 local layouts = require("youtrack.layouts")
 local utils = require("youtrack.utils")
-
----@return nil
-function M.get_queries()
-	local c = config.read()
-
-	lib.get_saved_queries(nil, function(e, r)
-		local queries = { { name = "Create a new query...", query = "" } }
-
-		vim.list_extend(queries, c.queries)
-
-		if e then
-			log.p.error(e)
-		else
-			vim.list_extend(
-				queries,
-				vim.tbl_map(function(query)
-					return n.node(query)
-				end, r or {})
-			)
-		end
-
-		vim.ui.select(queries, {
-			prompt = "Select query",
-			format_item = function(item)
-				return ("%s [%s]"):format(item.name, item.query)
-			end,
-		}, function(query)
-			if query == nil then
-				return
-			end
-
-			M.get_issues({ query = query.query })
-		end)
-	end)
-end
 
 ---@class youtrack.GetIssuesOptions
 ---@field query? string The query to search for issues.
@@ -186,7 +151,7 @@ function M.get_issues(opts)
 						on_press = function()
 							renderer:close()
 
-							M.get_queries()
+							require("youtrack.queries").get_queries()
 						end,
 					}),
 					n.gap(1),
@@ -313,11 +278,6 @@ function M.get_issues(opts)
 			if component ~= nil then
 				component:set_border_text("bottom", ("matches: %d"):format(#(res or {})), "right")
 			end
-
-			-- TODO: maybe figure out a way to focus the first issue
-			-- local issues_component = renderer:get_component_by_id("issues")
-			-- if issues_component ~= nil then
-			-- end
 		end)
 
 		vim.g.SHADA_YOUTRACK_NVIM_LAST_QUERY = query
@@ -711,6 +671,11 @@ function M.get_issue(opts)
 
 		signal_issue.should_refresh:observe(function(should_refresh)
 			if should_refresh then
+				local issue_header = renderer:get_component_by_id("issue_header")
+				if issue_header ~= nil then
+					issue_header:set_border_text("bottom", "running...", "right")
+				end
+
 				log.debug("Should refresh the given issue: %s", opts.id)
 
 				lib.get_issue({ id = opts.id }, function(err, res)
@@ -722,7 +687,6 @@ function M.get_issue(opts)
 
 					signal_issue.issue = res
 
-					local issue_header = renderer:get_component_by_id("issue_header")
 					if issue_header ~= nil then
 						local line = {
 							n.text(("[%s]"):format(res.project.text), "@class"),
@@ -804,6 +768,9 @@ function M.get_issue(opts)
 						utils.set_component_buffer_content(issue_comments, comments)
 					end
 
+					if issue_header ~= nil then
+						issue_header:set_border_text("bottom", "done.", "right")
+					end
 					signal.active = "issue"
 				end)
 

@@ -5,6 +5,7 @@ local M = {
 	get_issue = require("youtrack.issues").get_issue,
 	reset_last_issue = require("youtrack.issues").reset_lasts,
 	create_issue = require("youtrack.issues").create_issue,
+	_ = {},
 }
 
 ---@param config youtrack.Config
