@@ -1,5 +1,5 @@
 local M = {
-	_ = require("youtrack")._,
+	_ = require("youtrack.state"),
 }
 
 local lib = require("youtrack.lib")
