@@ -1,6 +1,4 @@
-local M = {
-	_ = require("youtrack")._,
-}
+local M = {}
 
 local lib = require("youtrack.lib")
 local log = require("youtrack.log")
