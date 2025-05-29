@@ -818,7 +818,8 @@ fn process_issue(issue: JsonValue) -> Result<Issue, Error> {
                         let date = DateTime::from_timestamp_millis(
                             comment.get("created").unwrap().as_i64().unwrap(),
                         )
-                        .unwrap();
+                        .unwrap()
+                        .with_timezone(&Local);
 
                         Comment {
                             author: comment
