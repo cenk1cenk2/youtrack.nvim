@@ -254,6 +254,9 @@ function M.get_issues(opts)
 			if err then
 				signal_issues.issues = {}
 				signal.error = err
+				if component ~= nil then
+					component:set_border_text("bottom", "error", "right")
+				end
 
 				return
 			end
@@ -681,6 +684,9 @@ function M.get_issue(opts)
 				lib.get_issue({ id = opts.id }, function(err, res)
 					if err then
 						signal.error = err
+						if issue_header ~= nil then
+							issue_header:set_border_text("bottom", "error", "right")
+						end
 
 						return
 					end
